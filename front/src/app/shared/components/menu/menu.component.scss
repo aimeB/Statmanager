@@ -1,0 +1,44 @@
+/* 🌍 GLOBAL MENU STYLES */
+.menu-container {
+  display: flex;
+  gap: 20px;
+  background: #141414;
+  padding: 10px 20px;
+  border-bottom: 3px solid #FFD700;
+  box-shadow: 0px 5px 15px rgba(0, 165, 80, 0.4);
+  align-items: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* 🏆 MENU BUTTONS */
+button[mat-button] {
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: 0.3s ease-in-out;
+}
+
+button[mat-button]:hover {
+  color: #FFD700;
+  transform: scale(1.1);
+}
+
+/* 📌 MENU DROPDOWN */
+mat-menu {
+  background: #222;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 165, 80, 0.5);
+}
+
+mat-menu-item {
+  color: white;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+
+mat-menu-item:hover {
+  background: #FFD700;
+  color: black;
+}

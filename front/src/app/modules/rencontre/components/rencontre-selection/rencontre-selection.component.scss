@@ -1,0 +1,109 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  background: url('/assets/stadium.jpg') no-repeat center center/cover; // ✅ Ambiance football
+}
+
+mat-card {
+  width: 95%;
+  max-width: 1200px;  // ✅ Plus grand cadre pour éviter les coupures
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.85); // ✅ Effet sombre type "mode nuit"
+  color: white;
+}
+
+h3 {
+  text-align: center;
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+}
+
+.lists-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between; 
+}
+
+.titulaires-container, .remplacants-container {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  min-height: 250px; // ✅ Empêche les éléments de bouger si la liste change
+  overflow-y: auto; // ✅ Ajoute un scroll si besoin
+  padding: 10px;
+}
+
+.joueur-card {
+  width: calc(20% - 10px); // ✅ Ajustement dynamique selon la taille de l'écran
+  min-width: 100px;
+  height: 140px;
+  background: linear-gradient(135deg, #4CAF50, #2E7D32); // ✅ Vert pour titulaires
+  color: white;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.3);
+}
+
+.joueur-card:hover {
+  transform: scale(1.05);
+}
+
+.remplacant-card {
+  background: linear-gradient(135deg, #ff9800, #e65100); // ✅ Orange pour remplaçants
+}
+
+button {
+  width: 100%;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+button:disabled {
+  background: gray;
+  cursor: not-allowed;
+}
+
+button:not(:disabled) {
+  background: #03A9F4;
+  color: white;
+}
+
+button:not(:disabled):hover {
+  background: #0288D1;
+}
+
+/* ✅ Ajout de la compatibilité mobile */
+@media screen and (max-width: 900px) {
+  .lists-container {
+    flex-direction: column;
+  }
+
+  .joueur-card {
+    width: calc(33.33% - 10px); // ✅ Plus grand sur mobile
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .joueur-card {
+    width: calc(50% - 10px); // ✅ Deux colonnes sur petits écrans
+  }
+}

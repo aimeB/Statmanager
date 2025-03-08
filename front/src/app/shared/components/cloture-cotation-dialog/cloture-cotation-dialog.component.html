@@ -1,0 +1,12 @@
+<h1>📝 Notation des joueurs</h1>
+<div *ngFor="let joueur of data.joueurs" class="joueur-note">
+  <p>{{ joueur.nom }} ({{ joueur.poste }})</p>
+  <button mat-button (click)="decrementCote(joueur)">-</button>
+  <span>{{ joueur.cote }}</span>
+  <button mat-button (click)="incrementCote(joueur)">+</button>
+</div>
+
+<div class="actions">
+  <button mat-raised-button color="primary" (click)="valider()">Valider</button>
+  <button mat-button (click)="annuler()">Annuler</button>
+</div>

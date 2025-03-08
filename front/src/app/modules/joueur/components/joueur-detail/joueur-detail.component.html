@@ -1,0 +1,44 @@
+<div class="joueur-detail-container" *ngIf="joueurData">
+    <h2>{{ joueurData.nom }}</h2>
+    <p><strong>Poste :</strong> {{ joueurData.poste }}</p>
+    <p><strong>Type :</strong> {{ joueurData.typeJoueur }}</p>
+  
+    <h3>📊 Statistiques Globales</h3>
+    <table>
+      <tr><th>Buts</th><td>{{ joueurData.totalButsGlobal }}</td></tr>
+      <tr><th>Passes</th><td>{{ joueurData.totalPassesGlobal }}</td></tr>
+      <tr><th>Minutes jouées</th><td>{{ joueurData.totalMinutesJoueesGlobal }}</td></tr>
+      <tr><th>Moyenne Cote</th><td>{{ joueurData.moyenneCoteGlobal }}</td></tr>
+    </table>
+    <button routerLink="/joueurs" class="btn-retour">⬅ Retour à la liste</button>
+    <h3>📈 Scores</h3>
+    <table>
+      <tr><th>Offensif</th><td>{{ joueurData.scoreOffensifGlobal }}</td></tr>
+      <tr><th>Régularité</th><td>{{ joueurData.scoreRegulariteGlobal }}</td></tr>
+      <tr><th>Contribution</th><td>{{ joueurData.scoreContributionGlobal }}</td></tr>
+      <tr><th>Endurance</th><td>{{ joueurData.scoreEnduranceGlobal }}</td></tr>
+    </table>
+  
+    <h3>🏆 Performances par Division</h3>
+    <ul>
+      <li *ngFor="let division of joueurData.performancesParDivision | keyvalue">
+        {{ division.key }} : Buts {{ division.value.buts }}, Passes {{ division.value.passes }}, Cote {{ division.value.moyenneCote }}
+      </li>
+    </ul>
+  
+    <h3>📅 Derniers Matchs</h3>
+    <table>
+      <thead>
+        <tr><th>Rencontre</th><th>Buts</th><th>Passes</th><th>Minutes</th><th>Cote</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let match of joueurData.derniersMatchs">
+          <td>Match {{ match.idRencontre }}</td>
+          <td>{{ match.buts }}</td>
+          <td>{{ match.passes }}</td>
+          <td>{{ match.minutesJouees }}</td>
+          <td>{{ match.moyenneCote }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>

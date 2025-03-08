@@ -1,0 +1,129 @@
+/* 🌍 POLICES FOOTBALL */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: url('https://source.unsplash.com/1600x900/?soccer,stadium') no-repeat center center;
+  background-size: cover;
+}
+
+/* 🏆 CONTAINER PRINCIPAL */
+.championnat-container {
+  padding: 20px;
+  width: 90%;
+  max-width: 900px;
+  background: rgba(20, 20, 20, 0.95);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* 🏁 TITRE */
+h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.8);
+  border-bottom: 3px solid #ffd700;
+  padding-bottom: 10px;
+}
+
+/* 📌 FORMULAIRE DE SÉLECTION */
+.full-width {
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* 📋 LISTE DES JOUEURS - Adaptée à une grille moderne */
+.joueurs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+/* 👕 CARTE JOUEUR - Un look FIFA Ultimate Team */
+.joueur-card {
+  background: rgba(34, 34, 34, 0.9);
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: 0.3s ease-in-out;
+  cursor: pointer;
+  min-width: 160px;
+  border: 2px solid transparent;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.joueur-card:hover {
+  border: 2px solid #ffd700;
+  transform: scale(1.08);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+}
+
+/* ✅ STYLE DES NOMS ET POSTES */
+.player-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.player-position {
+  font-style: italic;
+  color: #ffcc00;
+  font-size: 0.9rem;
+}
+
+/* 📌 RESPONSIVE - Affichage Adapté */
+@media screen and (max-width: 600px) {
+  .joueurs-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* 🔢 STATISTIQUES */
+.selection-status {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 1px 1px 3px rgba(255, 215, 0, 0.8);
+}
+
+/* ⚽ BOUTON CRÉATION */
+button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 15px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: linear-gradient(45deg, #ff4500, #ffcc00);
+  border: none;
+  color: white;
+  border-radius: 8px;
+  transition: 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+button:hover {
+  background: linear-gradient(45deg, #ffcc00, #ff4500);
+  transform: scale(1.05);
+}

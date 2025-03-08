@@ -1,0 +1,26 @@
+<nav class="menu-container">
+  <!-- 🏆 Gestion des championnats -->
+  <button mat-button [matMenuTriggerFor]="championnatMenu">🏆 Championnat</button>
+  <mat-menu #championnatMenu="matMenu">
+    <button mat-menu-item routerLink="/championnats">Liste des Championnats</button>
+    <button mat-menu-item routerLink="/championnats/create">Créer un Championnat</button>
+  </mat-menu>
+
+  <!-- 👤 Gestion des joueurs -->
+  <button mat-button [matMenuTriggerFor]="joueurMenu">👤 Joueur</button>
+  <mat-menu #joueurMenu="matMenu">
+    <button mat-menu-item routerLink="/joueurs/all">Tous les Joueurs</button>
+    <button mat-menu-item routerLink="/joueurs/statistiques">Statistiques Globales</button>
+  </mat-menu>
+
+  <!-- 📊 Statistiques avancées -->
+  <button mat-button [matMenuTriggerFor]="statMenu">📊 Statistiques</button>
+  <mat-menu #statMenu="matMenu">
+    <button mat-menu-item routerLink="/statistiques/critere">Par Critère</button>
+    <button mat-menu-item routerLink="/statistiques/derniers-matchs">5 Derniers Matchs</button>
+    <button mat-menu-item routerLink="/statistiques/composite">Score Composite</button>
+  </mat-menu>
+</nav>
+
+<!-- ✅ Très important : Permet d'afficher les routes enfants -->
+<router-outlet></router-outlet>

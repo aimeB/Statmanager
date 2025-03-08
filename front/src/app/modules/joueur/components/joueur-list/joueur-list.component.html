@@ -1,0 +1,96 @@
+<table mat-table [dataSource]="joueurs" class="mat-elevation-z8">
+
+  <!-- 🔹 Nom (Ajout d'un lien vers les détails du joueur) -->
+  <ng-container matColumnDef="nom">
+    <th mat-header-cell *matHeaderCellDef> Nom </th>
+    <td mat-cell *matCellDef="let joueur">
+      <a *ngIf="joueur.joueurId && joueur.joueurId !== 0" [routerLink]="['/joueurs', joueur.joueurId]" class="joueur-link">
+        {{ joueur.nom }}
+      </a>
+      <a *ngIf="!joueur.joueurId || joueur.joueurId === 0" (click)="rechercherJoueurParNom(joueur.nom)" class="joueur-link">
+        {{ joueur.nom }}
+      </a>
+      
+      
+      
+      
+    </td>
+  </ng-container>
+
+  <!-- 🔹 Type Joueur -->
+  <ng-container matColumnDef="typeJoueur">
+    <th mat-header-cell *matHeaderCellDef> Type Joueur </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.typeJoueur }} </td>
+  </ng-container>
+
+  <!-- 🔹 Poste -->
+  <ng-container matColumnDef="poste">
+    <th mat-header-cell *matHeaderCellDef> Poste </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.poste }} </td>
+  </ng-container>
+
+  <!-- 🔹 Buts -->
+  <ng-container matColumnDef="buts">
+    <th mat-header-cell *matHeaderCellDef> Buts </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.buts }} </td>
+  </ng-container>
+
+  <!-- 🔹 Buts / Minutes Jouées -->
+  <ng-container matColumnDef="butsParMinute">
+    <th mat-header-cell *matHeaderCellDef> Buts / min </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.buts / joueur.totalMinutesJouees | number:'1.2-2' }} </td>
+  </ng-container>
+
+  <!-- 🔹 Passes -->
+  <ng-container matColumnDef="passes">
+    <th mat-header-cell *matHeaderCellDef> Passes </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.passes }} </td>
+  </ng-container>
+
+  <!-- 🔹 Passes / Minutes Jouées -->
+  <ng-container matColumnDef="passesParMinute">
+    <th mat-header-cell *matHeaderCellDef> Passes / min </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.passes / joueur.totalMinutesJouees | number:'1.2-2' }} </td>
+  </ng-container>
+
+  <!-- 🔹 (Buts/Min + Passes/Min) -->
+  <ng-container matColumnDef="moyenneButsPasses">
+    <th mat-header-cell *matHeaderCellDef> (Buts/min + Passes/min) </th>
+    <td mat-cell *matCellDef="let joueur">
+      {{ ((joueur.buts / joueur.totalMinutesJouees) + (joueur.passes / joueur.totalMinutesJouees)) | number:'1.2-2' }}
+    </td>
+  </ng-container>
+
+  <!-- 🔹 Cote Moyenne -->
+  <ng-container matColumnDef="coteMoyenne">
+    <th mat-header-cell *matHeaderCellDef> Cote Moy. </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.cote | number:'1.2-2' }} </td>
+  </ng-container>
+
+  <!-- 🔹 Cote / Minutes Jouées -->
+  <ng-container matColumnDef="coteParMinute">
+    <th mat-header-cell *matHeaderCellDef> Cote / min </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.cote / joueur.totalMinutesJouees | number:'1.2-2' }} </td>
+  </ng-container>
+
+  <!-- 🔹 Points -->
+  <ng-container matColumnDef="points">
+    <th mat-header-cell *matHeaderCellDef> Points </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.points }} </td>
+  </ng-container>
+
+  <!-- 🔹 Points / Minutes Jouées -->
+  <ng-container matColumnDef="pointsParMinute">
+    <th mat-header-cell *matHeaderCellDef> Points / min </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.points / joueur.totalMinutesJouees | number:'1.2-2' }} </td>
+  </ng-container>
+
+  <!-- 🔹 Total Minutes Jouées -->
+  <ng-container matColumnDef="totalMinutesJouees">
+    <th mat-header-cell *matHeaderCellDef> Min. Jouées </th>
+    <td mat-cell *matCellDef="let joueur"> {{ joueur.totalMinutesJouees | number:'1.0-0' }} </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>

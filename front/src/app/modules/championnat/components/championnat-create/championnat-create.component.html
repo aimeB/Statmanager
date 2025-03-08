@@ -1,0 +1,35 @@
+<mat-card class="championnat-container">
+    <h2>🏆 Créer un Championnat</h2>
+  
+    <!-- 🌍 Sélection de la Division -->
+    <mat-form-field class="full-width">
+      <mat-label>📊 Sélectionner une Division</mat-label>
+      <mat-select [(ngModel)]="divisionSelectionnee">
+        <mat-option *ngFor="let division of divisions" [value]="division">
+          {{ division }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  
+    <!-- 📋 Liste des Joueurs Disponibles -->
+    <h3>👕 Joueurs Disponibles ({{ joueursDisponibles.length }})</h3>
+    <div class="joueurs-list">
+      <mat-card *ngFor="let joueur of joueursDisponibles" class="joueur-card" (click)="selectionnerJoueur(joueur)">
+        <mat-checkbox [checked]="joueursSelectionnes.includes(joueur.id)">
+          <span class="player-name">{{ joueur.nom }}</span> 
+          <span class="player-position">⚽ {{ joueur.poste }}</span>
+        </mat-checkbox>
+      </mat-card>
+    </div>
+  
+    <!-- 🔢 Nombre de Joueurs Sélectionnés -->
+    <p class="selection-status">
+      Joueurs sélectionnés : <strong>{{ joueursSelectionnes.length }} / 23</strong>
+    </p>
+  
+    <!-- ⚽ Bouton de Création -->
+    <button mat-raised-button color="primary" (click)="creerChampionnat()" [disabled]="joueursSelectionnes.length !== 23">
+      ⚽ Créer Championnat
+    </button>
+  </mat-card>
+  

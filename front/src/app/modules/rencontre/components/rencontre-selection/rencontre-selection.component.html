@@ -1,0 +1,57 @@
+<mat-card>
+  <mat-card-title>🏆 <b>Préparer une Nouvelle Rencontre</b></mat-card-title>
+
+  <!-- 📋 Nom Adversaire -->
+  <mat-form-field appearance="outline">
+    <mat-label>📋 Nom de l'Adversaire</mat-label>
+    <input matInput [(ngModel)]="nomAdversaire">
+  </mat-form-field>
+
+  <!-- 📊 Division Adverse -->
+  <mat-form-field appearance="outline">
+    <mat-label>📊 Division Adverse</mat-label>
+    <mat-select [(ngModel)]="divisionAdverse">
+      <mat-option *ngFor="let division of ['DIV1', 'DIV2', 'DIV3', 'DIV4']; trackBy: trackByDivision" [value]="division">
+        {{ division }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <div class="lists-container">
+    <!-- ✅ Titulaires Sélectionnés -->
+    <div class="titulaires-container">
+      <h3>✅ Titulaires ({{ titulairesSelectionnes.length }}/11)</h3>
+      <div *ngIf="titulairesSelectionnes.length === 0" class="empty-list">Aucun titulaire sélectionné</div>
+      <div *ngFor="let joueur of titulairesSelectionnes; trackBy: trackByJoueur"
+           class="joueur-card titulaire"
+           (click)="selectionnerTitulaires(joueur, 'titulaires')">
+        <span>{{ joueur.nom }}</span>
+        <span>⚽ {{ convertirPoste(joueur.poste) }}</span>
+        <span>⏱️ {{ joueur.minutesJouees || 0 }} min</span>
+        <span>⭐ {{ joueur.moyenneCote || 5.0 }}</span>
+      </div>
+    </div>
+
+    <!-- 🔄 Joueurs Disponibles -->
+    <div class="remplacants-container">
+      <h3>🆕 Joueurs Disponibles</h3>
+      <div *ngIf="joueursPrecedents.length === 0 && joueursDisponibles.length === 0" class="empty-list">
+        Aucun joueur disponible
+      </div>
+      <div *ngFor="let joueur of joueursPrecedents.concat(joueursDisponibles); trackBy: trackByJoueur"
+           class="joueur-card remplacant"
+           (click)="selectionnerTitulaires(joueur, 'disponibles')">
+        <span>{{ joueur.nom }}</span>
+        <span>⚽ {{ convertirPoste(joueur.poste) }}</span>
+        <span>⏱️ {{ joueur.minutesJouees || 0 }} min</span>
+        <span>⭐ {{ joueur.moyenneCote || 5.0 }}</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ✅ Bouton de validation -->
+  <button mat-raised-button color="primary" (click)="validerSelection()" [disabled]="!estSelectionComplete()">
+    ✅ Valider Sélection
+  </button>
+</mat-card>

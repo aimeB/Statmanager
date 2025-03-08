@@ -1,0 +1,12 @@
+<div class="championnats-container">
+  <h2>🏆 Derniers Championnats</h2>
+  
+  <ul>
+    <li *ngFor="let championnat of championnats" (click)="selectChampionnat(championnat.idChamp)">
+      {{ championnat.idChamp }} - {{ championnat.division }} - {{ championnat.statut }}
+    </li>
+  </ul>
+
+  <!-- ✅ Affichage dynamique des détails d'un championnat sélectionné -->
+  <app-championnat-detail *ngIf="selectedChampionnatId" [idChampionnat]="selectedChampionnatId"></app-championnat-detail>
+</div>
