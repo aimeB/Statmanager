@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="4abcaa72-c313-4dd8-8f74-d584175b6fed" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/.editorconfig" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/.vscode/extensions.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/.vscode/launch.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/.vscode/tasks.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/angular.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/public/favicon.ico" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.component.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.component.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.component.spec.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.component.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/app/app.routes.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/main.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/src/styles.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/tsconfig.app.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/tsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FRONT/frontend-championnat/tsconfig.spec.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Enum" />
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/FRONT/frontend-championnat" />
+  </component>
+  <component name="JpbToolWindowState">
+    <option name="isToolWindowVisible" value="false" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2sFEyZuZkID4gWCIo1Pg4VYKJRf" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.StatmanagerApplication.executor": "Run",
+    "Maven.demo [clean].executor": "Run",
+    "Maven.demo [install].executor": "Run",
+    "Maven.statmanager [clean].executor": "Run",
+    "Maven.statmanager [install].executor": "Run",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "Spring Boot.StatmanagerApplication.executor": "Run",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/admin/Documents/statmanager/BACK",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "preferences.general",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\admin\Documents\statmanager\src\main\java\com\genesis\api\statmanager\repository" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="StatmanagerApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="demo" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.genesis.api.statmanager.StatmanagerApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.218" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.218" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4abcaa72-c313-4dd8-8f74-d584175b6fed" name="Changes" comment="" />
+      <created>1738043177687</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1738043177687</updated>
+      <workItem from="1738043178968" duration="20262000" />
+      <workItem from="1738106571425" duration="14697000" />
+      <workItem from="1738122025816" duration="29251000" />
+      <workItem from="1738177841808" duration="37495000" />
+      <workItem from="1738247956061" duration="3583000" />
+      <workItem from="1738254903373" duration="34646000" />
+      <workItem from="1738294918412" duration="460000" />
+      <workItem from="1738295515932" duration="74511000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
