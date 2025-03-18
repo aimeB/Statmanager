@@ -13,12 +13,14 @@ import com.genesis.api.statmanager.dto.statistique.StatTopJoueurDTO;
 import com.genesis.api.statmanager.model.*;
 import com.genesis.api.statmanager.model.enumeration.*;
 import com.genesis.api.statmanager.projection.FeuilleDeMatchProjection;
+import com.genesis.api.statmanager.projection.JoueurLightProjection;
 import com.genesis.api.statmanager.projection.JoueurProjection;
 import com.genesis.api.statmanager.repository.*;
 import com.genesis.api.statmanager.service.ChampionnatService;
 import com.genesis.api.statmanager.service.RencontreService;
 import com.genesis.api.statmanager.service.StatistiqueManager;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+
 
 /**
  * Implémentation du service de gestion des rencontres.
@@ -36,6 +41,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class RencontreServiceImpl implements RencontreService {
+
 
     private final RencontreRepository rencontreRepository;
     private final FeuilleDeMatchRepository feuilleDeMatchRepository;
@@ -51,9 +57,11 @@ public class RencontreServiceImpl implements RencontreService {
     @PersistenceContext
     private EntityManager entityManager;
 
+
     // -------------------------------------------------------------------------
     // 📌 1️⃣ GESTION DES RENCONTRES
     // -------------------------------------------------------------------------
+
 
     /**
      * ✅ Supprime une rencontre par son ID.
@@ -99,15 +107,16 @@ public class RencontreServiceImpl implements RencontreService {
                 .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre introuvable (ID=" + idRencontre + ")"));
 
         int scoreEquipeLocale = rencontre.getFeuilleDeMatchs().stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Filtrer uniquement ceux qui ont joué
                 .mapToInt(FeuilleDeMatch::getButs)
                 .sum();
 
         List<StatistiquesRencontreDTO> statsJoueurs = rencontre.getFeuilleDeMatchs().stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Appliquer le même filtre
                 .map(feuille -> {
                     List<Long> idPasseurs = feuille.getPasseurs().stream()
                             .map(Joueur::getJid)
                             .toList();
-
                     List<String> nomPasseurs = feuille.getPasseurs().stream()
                             .map(Joueur::getNom)
                             .toList();
@@ -117,7 +126,7 @@ public class RencontreServiceImpl implements RencontreService {
                     }
 
                     return new StatistiquesRencontreDTO(
-                            feuille.getJoueurId(),
+                            feuille.getJid(),
                             feuille.getJoueur().getNom(),
                             feuille.getJoueur().getClass().getSimpleName(),
                             feuille.getJoueur().getPoste().name(),
@@ -126,9 +135,9 @@ public class RencontreServiceImpl implements RencontreService {
                             feuille.getPasses(),
                             feuille.getPasses() / Math.max(feuille.getMinutesJouees(), 1),
                             (feuille.getButs() + feuille.getPasses()) / 2.0,
-                            feuille.getMoyenneCote(),
+                            feuille.getCote(),
                             (feuille.getButs() * 3) + feuille.getPasses(),
-                            0, // pointsParMinute si besoin
+                            0,
                             feuille.getMinutesJouees(),
                             rencontre.getRid(),
                             idPasseurs,
@@ -149,11 +158,13 @@ public class RencontreServiceImpl implements RencontreService {
                 rencontre.getNomAdversaire(),
                 rencontre.getButAdversaire(),
                 Division.fromString(String.valueOf(rencontre.getDivisionAdversaire())).getDescription(),
+                rencontre.getHommeDuMatch() != null ? rencontre.getHommeDuMatch().getJid() : null,
                 hommeDuMatchNom,
                 rencontre.getStatutRencontre(),
                 statsJoueurs
         );
     }
+
 
     /**
      * ✅ Calcule le bilan des rencontres d'un championnat.
@@ -177,9 +188,18 @@ public class RencontreServiceImpl implements RencontreService {
         );
     }
 
+
+
+
+
     // -------------------------------------------------------------------------
     // 📌 2️⃣ SÉLECTION ET PRÉPARATION DES RENCONTRES
     // -------------------------------------------------------------------------
+
+
+
+
+
 
     /**
      * Prépare la sélection pour une nouvelle rencontre.
@@ -190,58 +210,49 @@ public class RencontreServiceImpl implements RencontreService {
     public NouvelleRencontreSelectionDTO getNouvelleRencontreSelection(Long idChampionnat) {
         log.info("📥 Préparation de la nouvelle rencontre pour le championnat ID={}", idChampionnat);
 
-        // 1️⃣ Récupération de la dernière rencontre jouée
-        Long idDerniereRencontre = rencontreRepository.findDerniereRencontreJouee(idChampionnat)
-                .map(Rencontre::getRid)
-                .orElse(null);
+        Optional<Rencontre> derniereRencontreOpt = rencontreRepository.findDerniereRencontreJouee(idChampionnat);
+        Long idDerniereRencontre = derniereRencontreOpt.map(Rencontre::getRid).orElse(null);
 
-        // 2️⃣ Récupération des joueurs du championnat sous forme de DTO
+// 1️⃣ Récupération de tous les joueurs du championnat
         List<JoueurDTO> joueursChampionnat = statChampionnatRepository.findJoueursByChampionnatId(idChampionnat)
                 .stream()
-                .map(stat -> new JoueurDTO(stat.getId(), stat.getNom(), Poste.fromString(stat.getPoste()))) // Utilisation de toString pour le poste
+                .map(stat -> new JoueurDTO(stat.getId(), stat.getNom(), Poste.fromString(stat.getPoste())))
                 .toList();
 
-
-        // 3️⃣ Récupération des joueurs ayant joué la dernière rencontre, sans instancier Joueur
+// 2️⃣ Récupération des titulaires du dernier match (si existant)
         List<JoueurDTO> joueursPrecedents = (idDerniereRencontre != null)
-                ? feuilleDeMatchRepository.findByRencontre(idDerniereRencontre)
-                .stream()
+                ? feuilleDeMatchRepository.findByRencontreProjection(idDerniereRencontre).stream()
+                .filter(FeuilleDeMatchProjection::isTitulaire)
                 .map(feuille -> new JoueurDTO(
-                        feuille.getJoueurId(),
-                        feuille.getJoueur().getNom(),  // ✅ Récupération du vrai nom du joueur
-                        feuille.getJoueur().getPoste().toString(), // ✅ Récupération du poste correct
-                        feuille.getJoueur().getCategoriePoste(), // ✅ Ajout de la catégorie du poste
-                        feuille.getJoueur().getPoint(), // ✅ Ajout des points
-                        feuille.getJoueur().getTypeJoueur() // ✅ Ajout du type de joueur
+                        feuille.getJid(),
+                        feuille.getNom(),
+                        Poste.valueOf(feuille.getPoste()) // ✅ Conversion String → Enum
                 ))
                 .toList()
                 : List.of();
 
+        log.info("📥 PJoueur precedent ID={}", joueursPrecedents);
 
+// 3️⃣ Filtrage des joueurs disponibles (ceux qui ne sont pas titulaires)
+        List<JoueurDTO> joueursDisponibles = joueursChampionnat.stream()
+                .filter(joueur -> joueursPrecedents.stream().noneMatch(titulaire -> titulaire.getId().equals(joueur.getId())))
+                .toList();
 
-
-
-
-        log.info("👥 Joueurs ayant joué la dernière rencontre : {}", joueursPrecedents.size());
-
-        // 4️⃣ Retourne l'objet NouvelleRencontreSelectionDTO
         return new NouvelleRencontreSelectionDTO(
                 idChampionnat,
                 idDerniereRencontre,
-                "",            // Nom de l'adversaire (vide pour l'instant)
-                null,          // Division de l'adversaire (à définir plus tard)
-                joueursPrecedents,
-                joueursChampionnat
+                "",
+                null,
+                joueursPrecedents, // ✅ Liste des titulaires du dernier match
+                joueursDisponibles // ✅ Liste des autres joueurs disponibles
         );
     }
+
 
     /**
      * Valide la sélection des joueurs avant le match.
      * Vérifie que le nombre de titulaires et remplaçants correspond aux exigences,
      * puis crée la rencontre.
-     */
-    /**
-     * ✅ Valide la sélection des joueurs dans le vestiaire et crée la rencontre.
      */
     @Transactional
     public TerrainDTO validerSelectionVestiaire(VestiaireDTO vestiaireDTO) {
@@ -266,7 +277,6 @@ public class RencontreServiceImpl implements RencontreService {
     }
 
 
-
     /**
      * ✅ Crée une nouvelle rencontre et initialise directement le terrain.
      */
@@ -289,150 +299,234 @@ public class RencontreServiceImpl implements RencontreService {
         vestiaireDTO.getTitulaires().forEach(joueur -> titulairesMap.put(joueur.getId(), true));
         vestiaireDTO.getRemplacants().forEach(joueur -> titulairesMap.put(joueur.getId(), false));
 
-        // 4️⃣ Récupération des joueurs en base
+        // 4️⃣ Déclaration de `joueurIds`
         List<Long> joueurIds = new ArrayList<>(titulairesMap.keySet());
-        List<Joueur> joueurs = joueurRepository.findAllById(joueurIds);
-        Map<Long, Joueur> joueurMap = joueurs.stream().collect(Collectors.toMap(Joueur::getJid, j -> j));
 
-        // 5️⃣ Vérification que tous les joueurs existent
-        if (joueurMap.size() != joueurIds.size()) {
+        // 5️⃣ Récupération des joueurs sous forme de projection **sans instancier `Joueur`**
+        List<JoueurProjection> joueurs = joueurRepository.findAllJoueurProjectionsByIds(joueurIds);
+        Set<Long> joueursExistants = joueurs.stream().map(JoueurProjection::getJid).collect(Collectors.toSet());
+
+        // 6️⃣ Vérification que tous les joueurs existent
+        if (joueursExistants.size() != joueurIds.size()) {
             throw new IllegalStateException("❌ Certains joueurs sont introuvables dans la base de données.");
         }
 
-        // 6️⃣ Création des feuilles de match
+        // 7️⃣ Création des feuilles de match **sans instancier `Joueur`**
         for (Long joueurId : joueurIds) {
             FeuilleDeMatch feuille = new FeuilleDeMatch();
             feuille.setRencontre(rencontre);
-            feuille.setJoueurId(joueurId);
-            feuille.setJoueur(joueurMap.get(joueurId)); // ✅ Assigne l’objet `Joueur`
+            feuille.setJid(joueurId);  // ✅ On stocke uniquement `joueurId`, pas l'entité `Joueur`
             feuille.setTitulaire(titulairesMap.getOrDefault(joueurId, false));
             feuille.setMinutesJouees(feuille.isTitulaire() ? TimePlay.MINUTES90.getPercentage() : TimePlay.MINUTES0.getPercentage());
 
-            log.info("👤 Joueur ID={} - Titulaire: {} - Minutes attribuées: {}",
-                    joueurId, feuille.isTitulaire(), feuille.getMinutesJouees());
+            log.info("👤 Joueur ID={} - Titulaire: {} - Minutes attribuées: {} -  cote : {}",
+                    joueurId, feuille.isTitulaire(), feuille.getMinutesJouees(), feuille.getCote());
 
             rencontre.addFeuilleDeMatch(feuille);
         }
 
-        // 7️⃣ Sauvegarde en base
+        // 8️⃣ Sauvegarde en base
         rencontreRepository.saveAndFlush(rencontre);
+        feuilleDeMatchRepository.flush();  // ✅ Force l'enregistrement immédiat
 
         log.info("✅ Rencontre ID={} créée avec {} joueurs", rencontre.getRid(), joueurIds.size());
 
-        // 8️⃣ Initialisation du terrain après création de la rencontre
-        return initialiserTerrain(rencontre.getRid()); // ✅ Envoie directement l'ID de la rencontre
+        // 9️⃣ Initialisation du terrain après création de la rencontre
+        return initialiserTerrain(rencontre.getRid(), getTerrain(rencontre.getRid()));
     }
-
 
 
 
 
     // -------------------------------------------------------------------------
-        // 📌 3️⃣ GESTION DU TERRAIN ET MATCH EN COURS
-        // -------------------------------------------------------------------------
+    // 📌 3️⃣ GESTION DU TERRAIN ET MATCH EN COURS
+    // -------------------------------------------------------------------------
+
 
     /**
-     * ✅ Initialise le terrain avant le match avec les joueurs validés.
+     * ✅ Prépare un terrain modifiable AVANT validation.
+     * Permet à l'utilisateur de placer les joueurs comme il le souhaite.
      */
     @Transactional
-    public TerrainDTO initialiserTerrain(Long idRencontre) {
-        log.info("📥 Construction initiale du terrain pour la rencontre ID={}", idRencontre);
+    public TerrainDTO construireTerrain(Long idRencontre) {
+        log.info("📥 Préparation du terrain modifiable pour la rencontre ID={}", idRencontre);
 
-        // 1️⃣ Vérification de l'existence de la rencontre
+        // 1️⃣ Vérification et récupération de la rencontre
         Rencontre rencontre = rencontreRepository.findById(idRencontre)
                 .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre non trouvée"));
 
-        // 2️⃣ Récupération des projections de feuilles de match
+        // 2️⃣ Récupération des feuilles de match associées
         List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(idRencontre);
         if (projections.isEmpty()) {
             throw new IllegalStateException("❌ Aucune feuille de match trouvée pour la rencontre ID=" + idRencontre);
         }
 
-        log.info("📄 Feuilles de match récupérées : {}", projections.size());
-
-        // 3️⃣ Transformation des projections en DTOs via `transformerEnTerrainDTO`
+        // 3️⃣ Transformation en DTO modifiable
         TerrainDTO terrainDTO = transformerEnTerrainDTO(rencontre, projections);
 
-        // ✅ 4️⃣ Mise à jour spécifique de la disposition des joueurs (`terrainJoueurs`)
+        // 4️⃣ Initialisation des joueurs **sans validation**
         Map<String, FeuilleDeMatchDTO> terrainJoueurs = new LinkedHashMap<>();
+        List<String> postes = List.of("GB", "DC_GAUCHE", "DC_DROIT", "DC_CENTRAL", "DG", "DD", "MDF", "MO", "MR", "AIG", "AID", "AC", "SA", "AC_DROIT", "AC_GAUCHE");
 
-        // ✅ Initialisation des postes sur le terrain
-        List<String> postes = List.of("GB", "DC_GAUCHE", "DC_DROIT", "DG", "DD", "MDF", "MO", "MR", "AIG", "AID", "AC");
+
         for (String poste : postes) {
             terrainJoueurs.put(poste, null);
         }
 
-        int dcCount = 0;
         for (FeuilleDeMatchDTO joueur : terrainDTO.getTitulaires()) {
-            if ("DC".equals(joueur.getPoste())) {
-                if (dcCount == 0) {
-                    terrainJoueurs.put("DC_GAUCHE", joueur);
-                    dcCount++;
-                } else if (dcCount == 1) {
-                    terrainJoueurs.put("DC_DROIT", joueur);
-                    dcCount++;
+            if (!terrainJoueurs.containsKey(joueur.getPoste()) || terrainJoueurs.get(joueur.getPoste()) == null) {
+                terrainJoueurs.put(joueur.getPoste(), joueur);
+                log.info("✅ Placement direct : {} → {}", joueur.getNom(), joueur.getPoste());
+            } else {
+                // 🔄 Vérifier les postes compatibles et trouver une place libre
+                List<String> postesCompatibles = getPostesCompatibles(joueur.getPoste());
+                for (String posteCompatible : postesCompatibles) {
+                    if (terrainJoueurs.get(posteCompatible) == null) {
+                        terrainJoueurs.put(posteCompatible, joueur);
+                        log.info("⚡ Placement alternatif : {} → {}", joueur.getNom(), posteCompatible);
+                        break;
+                    }
                 }
-            } else if (terrainJoueurs.containsKey(joueur.getPoste())) {
-                terrainJoueurs.putIfAbsent(joueur.getPoste(), joueur);
             }
         }
 
-        // ✅ 5️⃣ Reconstruction du `TerrainDTO` avec `terrainJoueurs` mis à jour
-        TerrainDTO terrainFinal = TerrainDTO.builder()
+
+        // ✅ Retourne le terrain pour modification avant validation
+        return TerrainDTO.builder()
                 .idRencontre(terrainDTO.getIdRencontre())
                 .idChampionnat(terrainDTO.getIdChampionnat())
-                .nomAdversaire(rencontre.getNomAdversaire())
-                .divisionAdversaire(rencontre.getDivisionAdversaire())
-                .butEquipe(terrainDTO.getButEquipe())
-                .butAdversaire(terrainDTO.getButAdversaire())
+                .nomAdversaire(terrainDTO.getNomAdversaire())
+                .divisionAdversaire(terrainDTO.getDivisionAdversaire())
                 .titulaires(terrainDTO.getTitulaires())
                 .remplacants(terrainDTO.getRemplacants())
-                .terrainJoueurs(terrainJoueurs) // ✅ Mise à jour spécifique de la disposition
+                .terrainJoueurs(terrainJoueurs) // Terrain modifiable
                 .build();
+    }
 
-        log.info("✅ Terrain initialisé avec {} titulaires et {} remplaçants pour la rencontre ID={}",
-                terrainFinal.getTitulaires().size(), terrainFinal.getRemplacants().size(), idRencontre);
+
+    /**
+     * ✅ Valide le terrain après l'ajustement des positions avec logs détaillés.
+     */
+    @Transactional
+    public TerrainDTO initialiserTerrain(Long idRencontre, TerrainDTO terrainDTO) {
+        log.info("✅ Début - Initialisation du terrain pour la rencontre ID={}", idRencontre);
+        // 📌 AFFICHAGE DU TERRAIN REÇU
+        log.info("📥 Terrain reçu avant modification : {}", terrainDTO);
+        // 1️⃣ Vérification de la rencontre
+        Rencontre rencontre = rencontreRepository.findById(idRencontre)
+                .orElseThrow(() -> {
+                    log.error("❌ Rencontre ID={} introuvable !", idRencontre);
+                    return new IllegalArgumentException("❌ Rencontre non trouvée");
+                });
+
+        log.info("✅ Rencontre ID={} trouvée. Vérification des joueurs...", idRencontre);
+
+        // 2️⃣ Charger l'état du terrain si nécessaire
+        if (terrainDTO == null || terrainDTO.getTitulaires() == null || terrainDTO.getRemplacants() == null) {
+            log.warn("⚠️ TerrainDTO vide. Récupération du terrain depuis la base...");
+            terrainDTO = getTerrain(idRencontre);
+        }
+
+        // 3️⃣ Vérifier la validité des listes
+        List<FeuilleDeMatchDTO> titulaires = Optional.ofNullable(terrainDTO.getTitulaires()).orElse(new ArrayList<>());
+        List<FeuilleDeMatchDTO> remplacants = Optional.ofNullable(terrainDTO.getRemplacants()).orElse(new ArrayList<>());
+
+        log.info("📌 Joueurs récupérés : {} titulaires et {} remplaçants.", titulaires.size(), remplacants.size());
+
+        if (titulaires.size() != 11) {
+            log.error("❌ Il faut exactement 11 titulaires, mais {} détectés !", titulaires.size());
+            throw new IllegalArgumentException("❌ Il faut exactement 11 titulaires !");
+        }
+        if (remplacants.size() != 12) {
+            log.error("❌ Il faut exactement 12 remplaçants, mais {} détectés !", remplacants.size());
+            throw new IllegalArgumentException("❌ Il faut exactement 12 remplaçants !");
+        }
+
+        // 4️⃣ Mise à jour des feuilles de match (seulement `titulaire` et `minutesJouees`)
+        for (FeuilleDeMatchDTO joueurDTO : titulaires) {
+            FeuilleDeMatch feuille = feuilleDeMatchRepository.findByRencontreAndJoueurId(idRencontre, joueurDTO.getJid())
+                    .stream().findFirst()
+                    .orElseThrow(() -> {
+                        log.error("❌ Feuille de match introuvable pour TITULAIRE {} (ID={}) !", joueurDTO.getNom(), joueurDTO.getJid());
+                        return new IllegalStateException("❌ Feuille de match introuvable pour " + joueurDTO.getNom());
+                    });
+
+            log.info("🟢 TITULAIRE détecté : {} (ID={}) | Ancien statut: Titulaire={} | Minutes={}",
+                    joueurDTO.getNom(), joueurDTO.getJid(), feuille.isTitulaire(), feuille.getMinutesJouees());
+
+            feuille.setTitulaire(true);
+            feuille.setMinutesJouees(TimePlay.MINUTES90.getPercentage()); // ✅ Minutes mises à jour
+            feuilleDeMatchRepository.save(feuille);
+
+            log.info("✅ Mise à jour OK - TITULAIRE {} (ID={}) | Nouveau statut: Titulaire=true | Minutes={}",
+                    joueurDTO.getNom(), joueurDTO.getJid(), feuille.getMinutesJouees());
+        }
+
+        for (FeuilleDeMatchDTO joueurDTO : remplacants) {
+            FeuilleDeMatch feuille = feuilleDeMatchRepository.findByRencontreAndJoueurId(idRencontre, joueurDTO.getJid())
+                    .stream().findFirst()
+                    .orElseThrow(() -> {
+                        log.error("❌ Feuille de match introuvable pour REMPLAÇANT {} (ID={}) !", joueurDTO.getNom(), joueurDTO.getJid());
+                        return new IllegalStateException("❌ Feuille de match introuvable pour " + joueurDTO.getNom());
+                    });
+
+            log.info("🟡 REMPLAÇANT détecté : {} (ID={}) | Ancien statut: Titulaire={} | Minutes={}",
+                    joueurDTO.getNom(), joueurDTO.getJid(), feuille.isTitulaire(), feuille.getMinutesJouees());
+
+            feuille.setTitulaire(false);
+            feuille.setMinutesJouees(TimePlay.MINUTES0.getPercentage()); // ✅ Minutes mises à jour
+            feuilleDeMatchRepository.save(feuille);
+
+            log.info("✅ Mise à jour OK - REMPLAÇANT {} (ID={}) | Nouveau statut: Titulaire=false | Minutes={}",
+                    joueurDTO.getNom(), joueurDTO.getJid(), feuille.getMinutesJouees());
+        }
+
+        feuilleDeMatchRepository.flush(); // ✅ Forcer l'enregistrement immédiat
+        log.info("✅ Enregistrement en base complété.");
+
+        // 5️⃣ Retourner `getTerrain()` pour que `transformerEnTerrainDTO` gère les autres transformations
+        TerrainDTO terrainFinal = getTerrain(idRencontre);
+        log.info("📤 Fin - Terrain initialisé pour la rencontre ID={}", idRencontre);
 
         return terrainFinal;
     }
 
 
-
-
-
-
     /**
-         * ✅ Récupère l'état actuel du terrain.
-         */
-        @Transactional
-        public TerrainDTO getTerrain(Long idRencontre) {
-            log.info("📥 Récupération de l'état du terrain pour la rencontre ID={}", idRencontre);
+     * ✅ Récupère l'état actuel du terrain.
+     */
+    @Transactional
+    public TerrainDTO getTerrain(Long idRencontre) {
+        log.info("📥 Récupération de l'état du terrain pour la rencontre ID={}", idRencontre);
 
-            // 1️⃣ Vérification de l'existence de la rencontre
-            Rencontre rencontre = rencontreRepository.findById(idRencontre)
-                    .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre non trouvée"));
+        // 1️⃣ Récupération de la rencontre et chargement des feuilles de match AVANT de quitter la transaction
+        Rencontre rencontre = rencontreRepository.findById(idRencontre)
+                .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre non trouvée"));
+
+
+        // ⚠️ Chargement explicite des feuilles de match AVANT la fermeture de la session Hibernate
+        rencontre.getFeuilleDeMatchs().size(); // ✅ Force Hibernate à initialiser la collection
 
         // 2️⃣ Rafraîchissement des données pour éviter le cache Hibernate
         feuilleDeMatchRepository.flush();
         entityManager.clear();
 
-        // 3️⃣ Récupération des feuilles de match sous forme de projection
+        // 3️⃣ Récupération des projections de feuilles de match
         List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(idRencontre);
         if (projections.isEmpty()) {
             throw new IllegalStateException("❌ Aucune feuille de match trouvée pour la rencontre ID=" + idRencontre);
         }
-
-        // 4️⃣ Transformation en `TerrainDTO` via la méthode utilitaire
+        // 🔹 Ajout d'un log pour voir les valeurs des cotes avant transformation
+        projections.forEach(feuille -> log.info("📌 [DEBUG] Projection Feuille ID={} | JID={} | Nom={} | Cote={}",
+                feuille.getId(), feuille.getJid(), feuille.getNom(), feuille.getCote()));
+        // 4️⃣ Transformation en `TerrainDTO`
         return transformerEnTerrainDTO(rencontre, projections);
     }
 
 
-    /**
-     * ✅ Met à jour les statistiques en temps réel (buts et passes) avec transactions distinctes.
-     */
     @Transactional
     public TerrainDTO updateStatsEnTempsReel(Long idRencontre, Long idJoueur, int buts, Long idPasseur) {
-        log.info("📢 [Début] Mise à jour des stats en temps réel - Rencontre ID={} | Joueur ID={} | Buts={} | Passeur={}",
+        log.info("📢 Mise à jour des stats en temps réel - Rencontre ID={} | Joueur ID={} | Buts={} | Passeur={}",
                 idRencontre, idJoueur, buts, idPasseur);
 
         // 1️⃣ Vérification et récupération de la feuille de match du buteur
@@ -447,10 +541,14 @@ public class RencontreServiceImpl implements RencontreService {
 
         Long feuilleButeurId = feuilleButeurIdOpt.get();
 
-        // 2️⃣ Mise à jour des buts avec transaction distincte
-        updateButsTransactionnel(feuilleButeurId, buts, 0); // On ne met pas à jour les passes ici
+        // 🔥 Récupérer les passes existantes AVANT de modifier le joueur
+        Integer passesActuelles = feuilleDeMatchRepository.findPassesById(feuilleButeurId).orElse(0);
+
+        // ✅ Mise à jour du joueur sans écraser ses passes
+        updateButsTransactionnel(feuilleButeurId, buts, passesActuelles);
 
         // 3️⃣ Mise à jour des passes si un passeur est fourni
+        Long feuillePasseurId = null;
         if (idPasseur != null && buts > 0) {
             Optional<Long> feuillePasseurIdOpt = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(idRencontre).stream()
                     .filter(f -> f.getJid().equals(idPasseur))
@@ -458,29 +556,61 @@ public class RencontreServiceImpl implements RencontreService {
                     .findFirst();
 
             if (feuillePasseurIdOpt.isPresent()) {
-                Long feuillePasseurId = feuillePasseurIdOpt.get();
+                feuillePasseurId = feuillePasseurIdOpt.get();
                 updatePassesTransactionnel(feuillePasseurId, 1);
                 feuilleDeMatchRepository.addPasseurByIds(feuilleButeurId, idPasseur);
             }
         }
 
-        // 4️⃣ Récupération et retour du terrain mis à jour
-        log.info("📥 [Fin] Récupération du terrain mis à jour pour la rencontre ID={}", idRencontre);
-        return getTerrain(idRencontre);
+        // ✅ 4️⃣ Récupération des feuilles de match mises à jour
+        List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(idRencontre);
+        List<FeuilleDeMatchDTO> feuillesDeMatchDTO = projections.stream()
+                .map(feuille -> new FeuilleDeMatchDTO(
+                        feuille.getId(),
+                        feuille.getRid(),
+                        feuille.getJid(),
+                        feuille.getNom(),
+                        feuille.getPoste(),
+                        feuille.getButs(),
+                        feuille.getPasses(),
+                        feuille.getCote(),
+                        feuille.getMinutesJouees(),
+                        feuille.isAjoue(),
+                        feuille.isTitulaire(),
+                        feuille.getButArreter(),
+                        feuille.getButEncaisser(),
+                        (feuille.getPasseursIds() != null && !feuille.getPasseursIds().isEmpty()) ?
+                                Arrays.stream(feuille.getPasseursIds().split(",")).map(Long::parseLong).toList() : new ArrayList<>(),
+                        (feuille.getNomsPasseurs() != null && !feuille.getNomsPasseurs().isEmpty()) ?
+                                Arrays.asList(feuille.getNomsPasseurs().split(",")) : new ArrayList<>()
+                ))
+                .toList();
+
+        // ✅ 5️⃣ Récupération complète du terrain et injection des nouvelles données
+        TerrainDTO terrain = getTerrain(idRencontre);
+
+        // ✅ 6️⃣ Ajout de l'historique des événements
+        List<EvenementMatchDTO> historique = getHistoriqueEvenements(idRencontre);
+        log.info("📌 Historique après mise à jour des stats en temps réel : {}", historique);
+
+        // ✅ 7️⃣ Envoi des mises à jour WebSocket en temps réel
+        messagingTemplate.convertAndSend("/topic/terrain/" + idRencontre, terrain);
+        log.info("📡 WebSocket : Stats en temps réel mises à jour pour la rencontre ID={}", idRencontre);
+
+        return terrain;
     }
 
 
 
-    /**
-     * ✅ Modifie la disposition des joueurs après un remplacement.
-     */
+
+
     @Transactional
     public TerrainDTO effectuerRemplacement(RemplacementDTO remplacementDTO) {
         log.info("🔄 Remplacement - Rencontre ID={} | Sortant={} | Entrant={} | Minute={}",
                 remplacementDTO.getIdRencontre(), remplacementDTO.getIdTitulaireSortant(),
                 remplacementDTO.getIdRemplacantEntrant(), remplacementDTO.getMinuteEntree());
 
-        // 1️⃣ Récupération des feuilles de match des joueurs concernés
+        // 1️⃣ Récupération des joueurs concernés directement via leur ID
         FeuilleDeMatch feuilleSortant = feuilleDeMatchRepository.findByRencontreAndJoueurId(
                         remplacementDTO.getIdRencontre(), remplacementDTO.getIdTitulaireSortant())
                 .stream().findFirst()
@@ -491,141 +621,228 @@ public class RencontreServiceImpl implements RencontreService {
                 .stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("❌ Remplaçant introuvable"));
 
-        // 2️⃣ Mise à jour des statuts et des minutes jouées
-        double minutesSortant = remplacementDTO.getMinuteEntree().getPercentage();
-        double minutesEntrant = 1.0 - minutesSortant;
+        // 2️⃣ Mise à jour des minutes jouées
+        TimePlay timePlaySortant = remplacementDTO.getMinuteEntree();
+        TimePlay timePlayEntrant = TimePlay.fromPercentage(1.0 - timePlaySortant.getPercentage());
 
-        // ✅ Correction de la logique demandée
-        feuilleSortant.setMinutesJouees(minutesSortant);
-        feuilleSortant.setTitulaire(true);  // ✅ Il reste titulaire
-        feuilleSortant.setAJoue(false);  // ✅ Il ne joue plus après remplacement
+        feuilleSortant.setMinutesJouees(timePlaySortant.getPercentage());
+        feuilleRemplacant.setMinutesJouees(timePlayEntrant.getPercentage());
 
-        feuilleRemplacant.setMinutesJouees(minutesEntrant);
-        feuilleRemplacant.setTitulaire(false);  // ✅ Il reste remplaçant
-        feuilleRemplacant.setAJoue(true);  // ✅ Il commence à jouer
+        // ✅ Mettre `aJoue = true` pour le remplaçant
+        feuilleRemplacant.setAjoue(true);
 
         feuilleDeMatchRepository.saveAll(List.of(feuilleSortant, feuilleRemplacant));
+        feuilleDeMatchRepository.flush();
+        entityManager.clear();
 
-        // 3️⃣ Récupération des feuilles mises à jour
-        List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(remplacementDTO.getIdRencontre());
+        // ✅ 3️⃣ Maintenant, récupérer l'état mis à jour du terrain
+        TerrainDTO terrainMisAJour = getTerrain(remplacementDTO.getIdRencontre());
 
-        // 4️⃣ Mise à jour des titulaires et remplaçants
-        List<FeuilleDeMatchDTO> titulaires = new ArrayList<>();
-        List<FeuilleDeMatchDTO> remplacants = new ArrayList<>();
-        Map<String, FeuilleDeMatchDTO> terrainJoueurs = new LinkedHashMap<>();
+        // ✅ 4️⃣ 🔥 Envoyer la mise à jour WebSocket **APRES** avoir le bon terrain
+        messagingTemplate.convertAndSend("/topic/terrain/" + remplacementDTO.getIdRencontre(), terrainMisAJour);
 
-        // ✅ Préparation des postes pour le terrain
-        List<String> postes = List.of("GB", "DC_GAUCHE", "DC_DROIT", "DG", "DD", "MDF", "MO", "MR", "AIG", "AID", "AC");
-        for (String poste : postes) {
-            terrainJoueurs.put(poste, null);
-        }
+        log.info("📡 WebSocket : Mise à jour envoyée pour la rencontre ID={}", remplacementDTO.getIdRencontre());
 
-        // ✅ Réorganisation des joueurs après remplacement
-        for (FeuilleDeMatchProjection feuille : projections) {
-            FeuilleDeMatchDTO dto = new FeuilleDeMatchDTO(
-                    feuille.getId(),
-                    feuille.getRid(),
-                    feuille.getJid(),
-                    feuille.getNom(),
-                    feuille.getPoste(), // ✅ Convertir String en Enum Poste
-                    feuille.getButs(),
-                    feuille.getPasses(),
-                    feuille.getMoyenneCote(),
-                    feuille.getMinutesJouees(),
-                    feuille.getAJoue(),
-                    feuille.isTitulaire(),
-                    feuille.getButArreter(),
-                    feuille.getButEncaisser(),
-                    (feuille.getPasseursIds() != null && !feuille.getPasseursIds().isEmpty()) ?
-                            Arrays.stream(feuille.getPasseursIds().split(","))
-                                    .filter(id -> !id.trim().isEmpty())
-                                    .map(Long::parseLong)
-                                    .collect(Collectors.toList()) :
-                            new ArrayList<>(),   // ⚠️ Ici se produit l'erreur (mauvaise inférence de type)
-                    (feuille.getNomsPasseurs() != null && !feuille.getNomsPasseurs().isEmpty()) ?
-                            Arrays.asList(feuille.getNomsPasseurs().split(",")) :
-                            new ArrayList<>()   // ⚠️ Ici aussi, potentielle erreur de type
-            );
-
-
-            if (feuille.getJid().equals(remplacementDTO.getIdTitulaireSortant())) {
-                remplacants.add(dto);  // ✅ Ajoute le joueur sortant aux remplaçants
-            } else if (feuille.getJid().equals(remplacementDTO.getIdRemplacantEntrant())) {
-                titulaires.add(dto);  // ✅ Ajoute le joueur entrant aux titulaires
-            } else {
-                if (feuille.isTitulaire()) {
-                    titulaires.add(dto);
-                } else {
-                    remplacants.add(dto);
-                }
-            }
-
-            if (terrainJoueurs.containsKey(feuille.getPoste())) {
-                terrainJoueurs.putIfAbsent(feuille.getPoste(), dto);
-            }
-        }
-
-        log.info("✅ Après remplacement - Titulaires: {}, Remplaçants: {}", titulaires.size(), remplacants.size());
-
-        // ✅ Retourne le `TerrainDTO` mis à jour
-        return TerrainDTO.builder()
-                .idRencontre(remplacementDTO.getIdRencontre())
-                .idChampionnat(feuilleSortant.getRencontre().getChampionnat().getIdChamp())
-                .nomAdversaire(feuilleSortant.getRencontre().getNomAdversaire())
-                .butEquipe(titulaires.stream().mapToInt(FeuilleDeMatchDTO::getButs).sum())
-                .butAdversaire(feuilleSortant.getRencontre().getButAdversaire())
-                .titulaires(titulaires)
-                .remplacants(remplacants)
-                .terrainJoueurs(terrainJoueurs)
-                .build();
+        return terrainMisAJour;
     }
 
 
-    /**
-     * ✅ Transforme une liste de feuilles de match en `TerrainDTO`.
-     */
+    @Transactional
+    public void mettreAJourButAdversaire(Long idRencontre, int butAdversaire) {
+        Rencontre rencontre = rencontreRepository.findById(idRencontre)
+                .orElseThrow(() -> new EntityNotFoundException("Rencontre non trouvée"));
+
+        rencontre.setButAdversaire(butAdversaire);
+        rencontreRepository.save(rencontre);
+
+        // ✅ 1️⃣ Récupérer l'état mis à jour du terrain
+        TerrainDTO terrainMisAJour = getTerrain(idRencontre);
+
+        // ✅ 2️⃣ Envoyer la mise à jour en temps réel via WebSocket
+        messagingTemplate.convertAndSend("/topic/terrain/" + idRencontre, terrainMisAJour);
+
+        log.info("📡 WebSocket : Score adverse mis à jour pour la rencontre ID={}", idRencontre);
+    }
+
+
+    @Transactional
+    public void mettreAJourStatsGardien(Long idRencontre, Long idJoueur, int butArreter) {
+        Long feuilleId = feuilleDeMatchRepository.findFeuilleIdByRencontreAndJoueur(idRencontre, idJoueur)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Feuille de match non trouvée pour rencontre ID " + idRencontre + " et joueur ID " + idJoueur
+                ));
+
+        // 🔥 Récupération du vrai `butEncaisser` depuis `rencontre`
+        int butEncaisser = rencontreRepository.findById(idRencontre)
+                .map(Rencontre::getButAdversaire)
+                .orElseThrow(() -> new EntityNotFoundException("Rencontre non trouvée pour ID " + idRencontre));
+
+        // ✅ Mise à jour en base
+        int updatedRows = feuilleDeMatchRepository.updateFeuilleGardienStats(feuilleId, butEncaisser, butArreter);
+
+        if (updatedRows == 0) {
+            throw new IllegalStateException("❌ La mise à jour des stats du gardien a échoué pour Feuille ID : " + feuilleId);
+        }
+
+        log.info("✅ Stats du gardien mises à jour : Feuille ID={} | Buts encaissés={} | Arrêts={}", feuilleId, butEncaisser, butArreter);
+
+        // ✅ 1️⃣ Récupérer l'état mis à jour du terrain
+        TerrainDTO terrainMisAJour = getTerrain(idRencontre);
+
+        // ✅ 2️⃣ Envoyer la mise à jour en temps réel via WebSocket
+        messagingTemplate.convertAndSend("/topic/terrain/" + idRencontre, terrainMisAJour);
+
+        log.info("📡 WebSocket : Stats du gardien mises à jour pour la rencontre ID={}", idRencontre);
+    }
+
+
     private TerrainDTO transformerEnTerrainDTO(Rencontre rencontre, List<FeuilleDeMatchProjection> projections) {
+        log.info("📌 [DEBUG] Début transformation en TerrainDTO pour la rencontre ID={}", rencontre.getRid());
+
+        // 1️⃣ Transformation des projections en DTOs
         List<FeuilleDeMatchDTO> feuillesDeMatchDTO = projections.stream()
                 .map(feuille -> new FeuilleDeMatchDTO(
                         feuille.getId(),
                         feuille.getRid(),
                         feuille.getJid(),
                         feuille.getNom(),
-                        String.valueOf(feuille.getPoste()), // ✅ Convertir String en Enum Poste
+                        String.valueOf(feuille.getPoste()),
                         feuille.getButs(),
                         feuille.getPasses(),
-                        feuille.getMoyenneCote(),
+                        feuille.getCote(),
                         feuille.getMinutesJouees(),
-                        feuille.getAJoue(),
+                        feuille.isAjoue(),
                         feuille.isTitulaire(),
                         feuille.getButArreter(),
                         feuille.getButEncaisser(),
                         (feuille.getPasseursIds() != null && !feuille.getPasseursIds().isEmpty())
                                 ? Arrays.stream(feuille.getPasseursIds().split(","))
-                                .map(String::trim) // ✅ Supprime les espaces autour
-                                .filter(id -> !id.isEmpty()) // ✅ Ignore les valeurs vides
-                                .map(Long::parseLong) // ✅ Convertit uniquement les valeurs valides
+                                .map(String::trim)
+                                .filter(id -> !id.isEmpty())
+                                .map(Long::parseLong)
                                 .collect(Collectors.toList())
                                 : new ArrayList<>(),
                         (feuille.getNomsPasseurs() != null && !feuille.getNomsPasseurs().isEmpty())
                                 ? Arrays.stream(feuille.getNomsPasseurs().split(","))
-                                .map(String::trim) // ✅ Supprime les espaces autour
-                                .filter(nom -> !nom.isEmpty()) // ✅ Ignore les valeurs vides
+                                .map(String::trim)
+                                .filter(nom -> !nom.isEmpty())
                                 .collect(Collectors.toList())
                                 : new ArrayList<>()
                 ))
                 .toList();
 
+        log.info("📌 [DEBUG] Feuilles de match récupérées ({}) :", feuillesDeMatchDTO.size());
+        feuillesDeMatchDTO.forEach(joueur -> log.info(
+                "📌 JID={} | Nom={} | Poste={} | Titulaire={} | Minutes={} | aJoue={}",
+                joueur.getJid(), joueur.getNom(), joueur.getPoste(), joueur.isTitulaire(),
+                joueur.getMinutesJouees(), joueur.isAjoue()
+        ));
+
+        // 2️⃣ Séparer les titulaires et remplaçants
+        List<FeuilleDeMatchDTO> titulaires = feuillesDeMatchDTO.stream()
+                .filter(FeuilleDeMatchDTO::isTitulaire)
+                .toList();
+
+        List<FeuilleDeMatchDTO> remplacants = feuillesDeMatchDTO.stream()
+                .filter(joueur -> !joueur.isTitulaire())
+                .toList();
+
+        log.info("📌 [DEBUG] Titulaires identifiés : {}", titulaires.size());
+        log.info("📌 [DEBUG] Remplaçants identifiés : {}", remplacants.size());
+
+        // 3️⃣ Construire `terrainJoueurs`
+        Map<String, FeuilleDeMatchDTO> terrainJoueurs = new LinkedHashMap<>();
+
+        // 3.1️⃣ Ajouter les titulaires qui ont joué tout le match
+        List<FeuilleDeMatchDTO> titulairesConflits = new ArrayList<>();
+
+        titulaires.stream()
+                .filter(joueur -> joueur.getMinutesJouees() == 1.0)
+                .forEach(joueur -> {
+                    if (!terrainJoueurs.containsKey(joueur.getPoste())) {
+                        terrainJoueurs.put(joueur.getPoste(), joueur);
+                        log.info("📌 [DEBUG] Ajout TITULAIRE {} en {} (minutes={})",
+                                joueur.getNom(), joueur.getPoste(), joueur.getMinutesJouees());
+                    } else {
+                        // 🔄 Poste déjà occupé, tenter un poste compatible
+                        List<String> postesCompatibles = getPostesCompatibles(joueur.getPoste());
+                        boolean ajouté = false;
+
+                        for (String posteCompatible : postesCompatibles) {
+                            if (!terrainJoueurs.containsKey(posteCompatible)) {
+                                terrainJoueurs.put(posteCompatible, joueur);
+                                log.info("📌 [DEBUG] TITULAIRE {} placé en {} (poste compatible)",
+                                        joueur.getNom(), posteCompatible);
+                                ajouté = true;
+                                break;
+                            }
+                        }
+
+                        if (!ajouté) {
+                            log.warn("⚠️ Conflit de poste : TITULAIRE {} (poste {} déjà pris)",
+                                    joueur.getNom(), joueur.getPoste());
+                            titulairesConflits.add(joueur);
+                        }
+                    }
+                });
+
+// (Optionnel) ➜ Gérer les titulaires restants en conflit ici, si besoin
+
+
+        // 3.2️⃣ Ajouter les remplaçants qui ont joué
+        remplacants.stream()
+                .filter(joueur -> Boolean.TRUE.equals(joueur.isAjoue()))
+                .forEach(joueur -> {
+                    if (!terrainJoueurs.containsKey(joueur.getPoste())) {
+                        terrainJoueurs.put(joueur.getPoste(), joueur);
+                        log.info("📌 [DEBUG] Ajout REMPLAÇANT {} en {} (minutes={})",
+                                joueur.getNom(), joueur.getPoste(), joueur.getMinutesJouees());
+                    } else {
+                        // 🔄 Gestion des postes compatibles
+                        List<String> postesCompatibles = getPostesCompatibles(joueur.getPoste());
+                        boolean ajouté = false;
+                        for (String posteCompatible : postesCompatibles) {
+                            if (!terrainJoueurs.containsKey(posteCompatible)) {
+                                terrainJoueurs.put(posteCompatible, joueur);
+                                log.info("📌 [DEBUG] Ajout REMPLAÇANT {} en {} (posté compatible)",
+                                        joueur.getNom(), posteCompatible);
+                                ajouté = true;
+                                break;
+                            }
+                        }
+                        if (!ajouté) {
+                            log.warn("⚠️ Impossible d'ajouter le remplaçant {} à un poste libre !", joueur.getNom());
+                        }
+                    }
+                });
+
+        // 4️⃣ Vérification finale des joueurs sur le terrain
+        log.info("📌 [BACKEND] Liste des joueurs réellement sur le terrain après transformation :");
+        terrainJoueurs.forEach((poste, joueur) -> log.info(
+                "📌 Poste={} | Joueur={} | Minutes={}", poste, joueur.getNom(), joueur.getMinutesJouees()
+        ));
+
+        // 5️⃣ Création du DTO final
         return TerrainDTO.builder()
                 .idRencontre(rencontre.getRid())
                 .idChampionnat(rencontre.getChampionnat().getIdChamp())
+                .nomEquipe("HERSTAL FC")
                 .nomAdversaire(rencontre.getNomAdversaire())
+                .divisionAdversaire(rencontre.getDivisionAdversaire())
                 .butEquipe(rencontre.getFeuilleDeMatchs().stream().mapToInt(FeuilleDeMatch::getButs).sum())
                 .butAdversaire(rencontre.getButAdversaire())
-                .titulaires(feuillesDeMatchDTO.stream().filter(FeuilleDeMatchDTO::isTitulaire).toList())
-                .remplacants(feuillesDeMatchDTO.stream().filter(f -> !f.isTitulaire()).toList())
+                .titulaires(titulaires)
+                .remplacants(remplacants)
+                .terrainJoueurs(terrainJoueurs)
+                .butsModifies(feuillesDeMatchDTO.stream()
+                        .collect(Collectors.toMap(FeuilleDeMatchDTO::getJid, FeuilleDeMatchDTO::getButs)))
+                .passesModifies(feuillesDeMatchDTO.stream()
+                        .collect(Collectors.toMap(FeuilleDeMatchDTO::getJid, FeuilleDeMatchDTO::getPasses)))
+                .minutesJouees(feuillesDeMatchDTO.stream()
+                        .collect(Collectors.toMap(FeuilleDeMatchDTO::getJid, FeuilleDeMatchDTO::getMinutesJouees)))
                 .build();
     }
+
 
     // -------------------------------------------------------------------------
     // 📌 4️⃣ FIN DE MATCH ET MISE À JOUR DES STATS
@@ -633,68 +850,424 @@ public class RencontreServiceImpl implements RencontreService {
 
     @Transactional
     public FinMatchDTO cloturerRencontre(ClotureRencontreDTO clotureDTO) {
-        log.info("📌 Clôture de la rencontre ID={}", clotureDTO.getIdRencontre());
+        log.info("📌 [Début] Clôture de la rencontre ID={}", clotureDTO.getIdRencontre());
+        log.info("📌 Cotes reçues debut : {}", clotureDTO.getCotes());
 
-        // 1️⃣ Récupération des données de la rencontre
+        // 1️⃣ Récupération de la rencontre
         Rencontre rencontre = rencontreRepository.findById(clotureDTO.getIdRencontre())
                 .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre introuvable"));
-
-        List<FeuilleDeMatchProjection> feuillesProjections = feuilleDeMatchRepository.findAllByRencontreId(clotureDTO.getIdRencontre());
         Championnat championnat = rencontre.getChampionnat();
         Long idChampionnat = championnat.getIdChamp();
+        log.info("📌 Rencontre ID={} | Championnat ID={} | Division={} | Statut={}",
+                rencontre.getRid(), idChampionnat, championnat.getDivision(), championnat.getStatut());
 
-        // 2️⃣ Mise à jour des statistiques
+        // 2️⃣ Récupération et filtrage des feuilles de match (garder seulement les joueurs ayant joué)
+        List<FeuilleDeMatchProjection> feuillesProjections = feuilleDeMatchRepository.findAllByRencontreId(clotureDTO.getIdRencontre())
+                .stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Filtrage
+                .toList();
+
+        log.info("📌 Nombre de feuilles de match filtrées (joueurs ayant joué) : {}", feuillesProjections.size());
+        log.info("📌 Cotes reçues juste avant maj : {}", clotureDTO.getCotes());
+
+        // 3️⃣ Mise à jour des statistiques (uniquement pour les joueurs ayant joué)
         majStatsFeuilleDeMatch(feuillesProjections, clotureDTO);
-        majStatsChampionnat(feuillesProjections, clotureDTO, rencontre);
-        majStatsJoueur(feuillesProjections, clotureDTO);
+        // ✅ Forcer la mise à jour en base
+        feuilleDeMatchRepository.flush();
+        entityManager.clear();
+        // 🔄 Récupération des feuilles après mise à jour
+        List<FeuilleDeMatchProjection> feuillesProjectionsApresMaj = feuilleDeMatchRepository.findAllByRencontreId(clotureDTO.getIdRencontre());
 
-        // 3️⃣ Transformation des feuilles de match en StatistiquesRencontreDTO
+
+        majStatsChampionnat(feuillesProjectionsApresMaj, clotureDTO, rencontre);
+        feuilleDeMatchRepository.flush();
+        entityManager.clear();
+        // 🔄 Récupération des feuilles après mise à jour
+        List<FeuilleDeMatchProjection> feuillesProjectionsApresMaj2 = feuilleDeMatchRepository.findAllByRencontreId(clotureDTO.getIdRencontre());
+
+        majStatsJoueur(feuillesProjectionsApresMaj2, clotureDTO);
+        log.info("✅ Statistiques mises à jour.");
+
+        // 4️⃣ Transformation des feuilles filtrées en DTO
         List<StatistiquesRencontreDTO> statsRencontres = feuillesProjections.stream()
                 .map(StatistiquesRencontreDTO::fromFeuilleDeMatchProjection)
-                .collect(Collectors.toList());
+                .toList();
 
-        // 4️⃣ Déterminer l’Homme du Match
+        // 5️⃣ Détermination de l’Homme du Match (parmi ceux qui ont joué)
         Long hommeDuMatchId = StatistiquesRencontreDTO.determinerHommeDuMatch(statsRencontres);
-        rencontre.setHommeDuMatch(hommeDuMatchId != null ? joueurRepository.findById(hommeDuMatchId).orElse(null) : null);
-        rencontreRepository.save(rencontre);
+        if (hommeDuMatchId != null) {
+            log.info("🔍 Mise à jour de l'Homme du Match en base | Rencontre ID={} | Joueur ID={}", rencontre.getRid(), hommeDuMatchId);
 
-        // 5️⃣ Mise à jour des Points de la Rencontre
+            rencontreRepository.updateHommeDuMatch(rencontre.getRid(), hommeDuMatchId);
+            rencontreRepository.flush(); // ✅ Force Hibernate à exécuter immédiatement l'update SQL
+
+            // ✅ Recharger `rencontre` pour s'assurer qu'elle est bien gérée
+            rencontre = entityManager.merge(rencontre);
+
+            // ✅ Maintenant `rencontre` est bien gérée, on peut appeler `refresh()`
+            entityManager.refresh(rencontre);
+
+
+        } else {
+            log.warn("⚠️ Aucun Homme du Match trouvé.");
+        }
+
+
+
+        log.info("✅ HOM attribué : Joueur ID={}", rencontre.getHommeDuMatch());
+
+
+        // 6️⃣ Mise à jour des points de la rencontre
         int pointsEquipe = calculerPointsRencontre(rencontre);
         championnat.setPointsActuels(championnat.getPointsActuels() + pointsEquipe);
         championnat.updateStatut();
+        log.info("📌 Points mis à jour : {} | Total Championnat : {}", pointsEquipe, championnat.getPointsActuels());
 
-        // 6️⃣ Mise à jour du score et du statut de la rencontre
+        // 7️⃣ Mise à jour du statut et du score de la rencontre
         rencontre.setButEquipe(rencontre.getScoreEquipeLocale());
         rencontre.setStatutRencontre(StatutRencontre.TERMINE);
         rencontreRepository.save(rencontre);
         championnatRepository.save(championnat);
+        log.info("✅ Rencontre et Championnat mis à jour en base.");
 
+// ✅ FORCER LA SYNCHRONISATION EN BASE AVANT LA VÉRIFICATION DU STATUT DU CHAMPIONNAT
+        rencontreRepository.flush();
+        championnatRepository.flush();
+        entityManager.clear();
+
+        log.info("✅ Données rafraîchies avant la vérification du statut du championnat.");
+
+// 8️⃣ Vérification du statut final du championnat
         championnatService.verifierStatutChampionnat(championnat);
 
-        if (championnat.getStatut() == Statut.PROMOTION || championnat.getStatut() == Statut.RELEGATION || championnat.getStatut() == Statut.MAINTIEN) {
-            log.info("🏁 **Fin du championnat ID={} selon les règles de promotion/relégation.**", idChampionnat);
-            championnatService.cloturerChampionnat(idChampionnat);
+// ✅ Vérifier que TOUS les matchs sont bien joués avant de clôturer
+        long matchsJoues = rencontreRepository.countRencontresTerminees(idChampionnat);
+        if (matchsJoues >= MAX_RENCONTRES) {
+            if (championnat.getStatut() == Statut.PROMOTION || championnat.getStatut() == Statut.RELEGATION || championnat.getStatut() == Statut.MAINTIEN) {
+                log.info("🏆 Fin du championnat ID={} après {} matchs terminés", idChampionnat, matchsJoues);
+                championnatService.cloturerChampionnat(idChampionnat);
+            }
+        } else {
+            log.info("⏳ Championnat encore en cours. Matchs restants à jouer : {}", MAX_RENCONTRES - matchsJoues);
         }
 
-        // 7️⃣ Récupération des événements du match via `getHistoriqueEvenements`
-        List<EvenementMatchDTO> evenementsMatch = getHistoriqueEvenements(rencontre.getRid());
 
-        // 8️⃣ Construction et retour du DTO FinMatchDTO
+
+        // 9️⃣ Récupération de l’historique des événements
+        List<EvenementMatchDTO> evenementsMatch = getHistoriqueEvenements(rencontre.getRid());
+        log.info("✅ Nombre d’événements récupérés : {}", evenementsMatch.size());
+
+        // 🔟 Retour du DTO FinMatchDTO
         return new FinMatchDTO(
                 rencontre.getRid(),
                 rencontre.getNomEquipe(),
                 rencontre.getButEquipe(),
                 rencontre.getNomAdversaire(),
                 rencontre.getButAdversaire(),
-                hommeDuMatchId != null ? joueurRepository.findById(hommeDuMatchId).map(Joueur::getNom).orElse("Inconnu") : "Inconnu",
+                hommeDuMatchId != null
+                        ? joueurRepository.findJoueurProjectionById(hommeDuMatchId)
+                        .map(JoueurProjection::getNom)
+                        .orElse("Inconnu")
+                        : "Inconnu",
                 statsRencontres,
                 evenementsMatch
         );
+
+    }
+
+
+    /**
+     * 📌 Met à jour les cotes des joueurs après attribution en fin de match.
+     */
+    @Transactional
+    @Override
+    public void mettreAJourCotes(Long idRencontre, Map<Long, Double> cotesJoueurs) {
+        cotesJoueurs.forEach((joueurId, nouvelleCote) -> {
+            feuilleDeMatchRepository.mettreAJourCoteJoueur(idRencontre, joueurId, nouvelleCote);
+            log.info("📌 Cote mise à jour en base pour Joueur ID={} : {}", joueurId, nouvelleCote);
+        });
+    }
+
+
+    /**
+     * ✅ Met à jour les statistiques du match (FeuilleDeMatch).
+     */
+    private void majStatsFeuilleDeMatch(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO) {
+        log.info("📌 [Début] Mise à jour des statistiques des feuilles de match. Nombre de projections : {}", feuillesProjections.size());
+        log.info("📌 Cotes reçues pour mise à jour : {}", clotureDTO.getCotes());
+
+        feuillesProjections.forEach(feuilleProjection -> {
+            log.info("📌 Feuille de match traitée - ID={} | JID={} | Nom={} | aJoue={} | Titulaire={} | Poste={}",
+                    feuilleProjection.getId(), feuilleProjection.getJid(), feuilleProjection.getNom(),
+                    feuilleProjection.isAjoue(), feuilleProjection.isTitulaire(), feuilleProjection.getPoste());
+
+            // Conversion de la projection en DTO
+            FeuilleDeMatchDTO feuilleDTO = new FeuilleDeMatchDTO(
+                    feuilleProjection.getId(),
+                    feuilleProjection.getRid(),
+                    feuilleProjection.getJid(),
+                    feuilleProjection.getNom(),
+                    feuilleProjection.getPoste(),
+                    feuilleProjection.getButs(),
+                    feuilleProjection.getPasses(),
+                    feuilleProjection.getCote(),  // Valeur initiale, sera écrasée par clotureDTO.getCotes()
+                    feuilleProjection.getMinutesJouees(),
+                    feuilleProjection.isAjoue(),
+                    feuilleProjection.isTitulaire(),
+                    feuilleProjection.getButArreter(),
+                    feuilleProjection.getButEncaisser(),
+                    parsePasseurs(feuilleProjection.getPasseursIds()),
+                    parseNomsPasseurs(feuilleProjection.getNomsPasseurs())
+            );
+
+            // Conversion vers StatistiquesRencontreDTO
+            StatistiquesRencontreDTO stats = StatistiquesRencontreDTO.fromFeuilleDeMatch(feuilleDTO);
+
+            // ✅ Vérification spécifique pour les gardiens
+            boolean estGardien = Poste.fromString(feuilleDTO.getPoste()).isGardien();
+            int butEncaisserGardien = estGardien ? clotureDTO.getButAdversaire() : 0;
+            int butArreterGardien = estGardien ? clotureDTO.getButsArretes().getOrDefault(feuilleDTO.getJid(), 0) : 0;
+
+
+
+            // ✅ Mise à jour en base avec la cote correctement attribuée
+            feuilleDeMatchRepository.majStatsFeuilleDeMatch(
+                    feuilleDTO.getFeuilleId(),  // Correction ici : Utilisation de getId()
+                    stats.getButs(),
+                    stats.getPasses(),
+                    stats.getCote(),  // Cote bien prise en compte
+                    stats.getMinutesJouees(),
+                    estGardien,
+                    butEncaisserGardien,
+                    butArreterGardien
+            );
+
+
+        });
+
+        log.info("✅ [Fin] Mise à jour des feuilles de match complétée.");
     }
 
 
 
-    /** Récupère l'historique des buts d'une rencontre. */
+
+
+
+
+    private void majStatsChampionnat(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO, Rencontre rencontre) {
+        log.info("📌 [Début] Mise à jour des statistiques du championnat pour le championnat ID={}", rencontre.getChampionnat().getIdChamp());
+
+        // 📌 Ne garder que les joueurs qui ont joué
+        Map<Long, List<StatistiquesRencontreDTO>> statsParJoueur = feuillesProjections.stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Exclure ceux qui n'ont pas joué
+                .map(StatistiquesRencontreDTO::fromFeuilleDeMatchProjection)
+                .collect(Collectors.groupingBy(StatistiquesRencontreDTO::getJoueurId));
+
+        Championnat championnat = rencontre.getChampionnat();
+        Map<Long, StatChampionnat> statsMap = statChampionnatRepository.findByChampionnat(championnat)
+                .stream().collect(Collectors.toMap(StatChampionnat::getJoueurId, stat -> stat));
+
+        List<Long> joueursIds = statsParJoueur.keySet().stream().toList();
+        Map<Long, JoueurProjection> joueursProjectionMap = joueurRepository.findAllJoueurProjectionsByIds(joueursIds)
+                .stream().collect(Collectors.toMap(JoueurProjection::getJid, p -> p));
+
+        for (Map.Entry<Long, List<StatistiquesRencontreDTO>> entry : statsParJoueur.entrySet()) {
+            Long joueurId = entry.getKey();
+            List<StatistiquesRencontreDTO> statsJoueur = entry.getValue();
+
+            StatistiquesChampionnatDTO statsChampionnat = StatistiquesChampionnatDTO.fromChampionnat(statsJoueur, championnat.getIdChamp());
+
+            // 📌 Récupération ou création de l'entrée StatChampionnat
+            StatChampionnat statChampionnat = statsMap.getOrDefault(joueurId, new StatChampionnat(
+                    null, joueurId, championnat, 0, 0, 0.0, 5.0, 0, 0, 0 // Ajout des nouvelles valeurs
+            ));
+
+            // 📌 Logs des valeurs en base avant mise à jour
+            log.info("🔍 [AVANT] Stats en base pour Joueur ID={} | Buts={} | Passes={} | Minutes={} | Cote={} | Buts encaissés={} | Arrêts={} | Clean Sheets={}",
+                    joueurId, statChampionnat.getButsChamp(), statChampionnat.getPassesChamp(),
+                    statChampionnat.getMinutesJoueesChamp(), statChampionnat.getMoyenneCoteChamp(),
+                    statChampionnat.getButEncaisserChamp(), statChampionnat.getButArreterChamp(),
+                    statChampionnat.getCleanSheet());
+
+// 📌 Mise à jour des statistiques en conservant les anciennes valeurs
+            statChampionnat.setButsChamp(statChampionnat.getButsChamp() + statsChampionnat.getButsChamp());
+            statChampionnat.setPassesChamp(statChampionnat.getPassesChamp() + statsChampionnat.getPassesChamp());
+            statChampionnat.setMinutesJoueesChamp(statChampionnat.getMinutesJoueesChamp() + statsChampionnat.getMinutesJoueesChamp());
+
+// 📌 Calcul de la moyenne pondérée de la cote
+            double totalMinutes = statChampionnat.getMinutesJoueesChamp() + statsChampionnat.getMinutesJoueesChamp();
+            statChampionnat.setMoyenneCoteChamp(
+                    (totalMinutes > 0) ?
+                            ((statChampionnat.getMoyenneCoteChamp() * statChampionnat.getMinutesJoueesChamp()) +
+                                    (statsChampionnat.getCoteChamp() * statsChampionnat.getMinutesJoueesChamp())) / totalMinutes
+                            : 5.0
+            );
+
+// 📌 Gestion des stats spécifiques aux gardiens
+            if (Poste.fromString(joueursProjectionMap.get(joueurId).getPoste()).isGardien()) {
+                int butsEncaisser = clotureDTO.getButAdversaire();
+                int butsArretes = clotureDTO.getButsArretes().getOrDefault(joueurId, 0);
+
+                // ✅ Additionner les nouvelles valeurs aux anciennes au lieu de les écraser
+                statChampionnat.setButEncaisserChamp(statChampionnat.getButEncaisserChamp() + butsEncaisser);
+                statChampionnat.setButArreterChamp(statChampionnat.getButArreterChamp() + butsArretes);
+
+                if (butsEncaisser == 0) {
+                    statChampionnat.setCleanSheet(statChampionnat.getCleanSheet() + 1); // ✅ Incrémentation des clean sheets
+                }
+            }
+
+// 📌 Logs des valeurs en base après mise à jour
+            log.info("✅ [APRES] Stats mises à jour en base pour Joueur ID={} | Buts={} | Passes={} | Minutes={} | Cote={} | Buts encaissés={} | Arrêts={} | Clean Sheets={}",
+                    joueurId, statChampionnat.getButsChamp(), statChampionnat.getPassesChamp(),
+                    statChampionnat.getMinutesJoueesChamp(), statChampionnat.getMoyenneCoteChamp(),
+                    statChampionnat.getButEncaisserChamp(), statChampionnat.getButArreterChamp(),
+                    statChampionnat.getCleanSheet());
+
+
+
+            messagingTemplate.convertAndSend("/topic/stats/championnat/" + rencontre.getChampionnat().getIdChamp(), statsChampionnat);
+        }
+
+        log.info("📡 WebSocket : Statistiques du championnat envoyées pour le championnat ID={}", rencontre.getChampionnat().getIdChamp());
+        log.info("✅ [Fin] Mise à jour des statistiques du championnat complétée.");
+    }
+
+
+
+
+
+
+
+
+
+    private void majStatsJoueur(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO) {
+        log.info("📌 [Début] Mise à jour des statistiques globales des joueurs.");
+
+        Map<Long, List<StatistiquesRencontreDTO>> statsParJoueur = feuillesProjections.stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Exclure ceux qui n'ont pas joué
+                .map(StatistiquesRencontreDTO::fromFeuilleDeMatchProjection)
+                .collect(Collectors.groupingBy(StatistiquesRencontreDTO::getJoueurId));
+
+
+        List<StatistiquesDTO> statsJoueurs = new ArrayList<>();
+
+        // 🔹 Conversion et mise à jour des stats en une seule boucle
+        feuillesProjections.stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Exclure ceux qui n'ont pas joué
+                .forEach(feuilleProjection -> {
+                    log.info("📌 Vérification de la feuille de match - ID={} | JID={} | Nom={} | Poste={} | Buts={} | Passes={} | Minutes={} | Cote={} | Buts Arrêtés={} | Buts Encaissés={}",
+                            feuilleProjection.getId(), feuilleProjection.getJid(), feuilleProjection.getNom(),
+                            feuilleProjection.getPoste(), feuilleProjection.getButs(), feuilleProjection.getPasses(),
+                            feuilleProjection.getMinutesJouees(), feuilleProjection.getCote(),
+                            feuilleProjection.getButArreter(), feuilleProjection.getButEncaisser());
+
+                    StatistiquesRencontreDTO statsRencontre = StatistiquesRencontreDTO.fromFeuilleDeMatchProjection(feuilleProjection);
+                    StatistiquesDTO statsJoueur = StatistiquesDTO.fromRencontres(Collections.singletonList(statsRencontre));
+
+                    // ✅ Logs avant mise à jour
+                    log.info("🔍 [AVANT] Stats Joueur ID={} | Buts={} | Passes={} | Minutes={} | cote={}",
+                            statsJoueur.getJoueurId(), statsJoueur.getButs(), statsJoueur.getPasses(), statsJoueur.getTotalMinutesJouees(), statsJoueur.getCote());
+
+// ✅ Mise à jour des stats générales du joueur
+                    joueurRepository.majStatsJoueur(
+                            statsJoueur.getJoueurId(),
+                            statsJoueur.getButs(),
+                            statsJoueur.getPasses(),
+                            statsJoueur.getTotalMinutesJouees(),
+                            statsJoueur.getCote()
+                    );
+
+
+
+
+                    // ✅ Logs avant mise à jour gardien
+                    if ("GB".equals(statsRencontre.getPoste())) {
+                        log.info("🔍 [AVANT     STAT GLOBAL] Stats Gardien ID={} | Buts arrêtés={} | Buts encaissés={} | Clean Sheets={}",
+                                statsJoueur.getJoueurId(), statsJoueur.getButArreter(), statsJoueur.getButEncaisser(), statsJoueur.getCleanSheet());
+
+                        // ✅ Mise à jour spécifique pour les gardiens
+                        joueurRepository.majStatsGardien(
+                                statsJoueur.getJoueurId(),
+                                statsJoueur.getButArreter(),
+                                statsJoueur.getButEncaisser(),
+                                statsJoueur.getCleanSheet()
+                        );
+
+                        // ✅ Logs après mise à jour
+                        log.info("✅ [APRES] Stats Gardien cote={} mises à jour en base.", statsJoueur.getCote());
+                    }
+                    // ✅ Logs avant mise à jour
+                    log.info("🔍 [APRES   STAT GLOBAL] Stats Joueur ID={} | Buts={} | Passes={} | Minutes={} | cote={}",
+                            statsJoueur.getJoueurId(), statsJoueur.getButs(), statsJoueur.getPasses(), statsJoueur.getTotalMinutesJouees(), statsJoueur.getCote());
+
+
+                    statsJoueurs.add(statsJoueur);
+                });
+
+
+
+        messagingTemplate.convertAndSend("/topic/stats/joueurs", statsJoueurs);
+        log.info("✅ [Fin] Mise à jour des statistiques des joueurs complétée.");
+    }
+
+
+
+
+
+    private List<Long> parsePasseurs(String passeursIds) {
+        if (passeursIds != null && !passeursIds.isEmpty()) {
+            return Arrays.stream(passeursIds.split(","))
+                    .map(Long::parseLong) // Convertit chaque ID en Long
+                    .collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+
+    private List<String> parseNomsPasseurs(String nomsPasseurs) {
+        if (nomsPasseurs != null && !nomsPasseurs.isEmpty()) {
+            return Arrays.asList(nomsPasseurs.split(",")); // Convertit directement en liste de String
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+
+    private int calculerPointsRencontre(Rencontre rencontre) {
+        log.info("📌 Calcul des points pour la rencontre ID={} | Score Équipe Locale={} | Score Adversaire={}",
+                rencontre.getRid(), rencontre.getScoreEquipeLocale(), rencontre.getButAdversaire());
+
+        int points;
+
+        if (rencontre.getScoreEquipeLocale() > rencontre.getButAdversaire()) {
+            points = 3; // ✅ Victoire → 3 points
+            log.info("🏆 Victoire détectée → 3 points attribués.");
+        } else if (rencontre.getScoreEquipeLocale() == rencontre.getButAdversaire()) {
+            points = 1; // 🏳️ Match nul → 1 point
+            log.info("🤝 Match nul détecté → 1 point attribué.");
+        } else {
+            points = 0; // ❌ Défaite → 0 point
+            log.info("❌ Défaite détectée → 0 point attribué.");
+        }
+
+        log.info("📌 Points attribués pour la rencontre ID={} : {}", rencontre.getRid(), points);
+        return points;
+    }
+
+
+
+
+
+
+
+
+
+
+    /**
+     * Récupère l'historique des buts et des remplacements d'une rencontre
+     */
     @Transactional(readOnly = true)
     public List<EvenementMatchDTO> getHistoriqueEvenements(Long idRencontre) {
         log.info("📥 Récupération de l'historique des buts et des remplacements pour la rencontre ID={}", idRencontre);
@@ -702,55 +1275,175 @@ public class RencontreServiceImpl implements RencontreService {
         TerrainDTO terrainDTO = getTerrain(idRencontre);
         List<EvenementMatchDTO> historique = new ArrayList<>();
 
-        // 📌 Ajout des buts marqués
+        // 📌 Ajout des buts avec format FIFA 🎮
         terrainDTO.getButsModifies().forEach((joueurId, nbButs) -> {
-            FeuilleDeMatchDTO joueur = terrainDTO.getTerrainJoueurs().values().stream()
+            FeuilleDeMatchDTO joueur = terrainDTO.getTitulaires().stream()
                     .filter(j -> j.getJid().equals(joueurId))
                     .findFirst()
+                    .or(() -> terrainDTO.getRemplacants().stream()
+                            .filter(j -> j.getJid().equals(joueurId))
+                            .findFirst())
                     .orElse(null);
 
             if (joueur != null) {
                 for (int i = 0; i < nbButs; i++) {
+                    // ✅ Récupération correcte des passeurs depuis la projection
+                    List<Long> passeursIds = joueur.getPasseursId() != null ? joueur.getPasseursId() : new ArrayList<>();
+                    List<String> nomsPasseurs = joueur.getNomsPasseurs() != null ? joueur.getNomsPasseurs() : new ArrayList<>();
+
+                    // ✅ Vérification si un passeur est enregistré
+                    String iconePasseur = passeursIds.isEmpty() ? "" : "🎯 " + nomsPasseurs.get(0);
+                    Long idPasseur = passeursIds.isEmpty() ? null : passeursIds.get(0);
+
                     historique.add(new EvenementMatchDTO(
                             idRencontre,
                             joueurId,
-                            joueur.getNom(),
-                            terrainDTO.getMinutesJouees().get(joueurId).intValue(),
+                            "⚽ " + joueur.getNom(),
+                            terrainDTO.getMinutesJouees().getOrDefault(joueurId, 0.0).intValue(), // ✅ Cast explicite en int
+
                             "BUT",
-                            joueur.getPasseursId().isEmpty() ? null : joueur.getPasseursId().get(0),
-                            joueur.getNomsPasseurs().isEmpty() ? "Sans passeur" : joueur.getNomsPasseurs().get(0)
+                            idPasseur,
+                            iconePasseur
                     ));
                 }
             }
         });
 
-        // 📌 Ajout des remplacements
+        // 📌 Ajout des remplacements en format timeline 🔄
         for (FeuilleDeMatchDTO remplacant : terrainDTO.getRemplacants()) {
-            Long idEntrant = remplacant.getJid();
-            Double minuteEntree = terrainDTO.getMinutesJouees().get(idEntrant);
-            if (minuteEntree != null) {
+            if (remplacant.isAjoue()) {
+                Long idEntrant = remplacant.getJid();
+                Double minuteJoueeEntrant = remplacant.getMinutesJouees();
+                Double minuteEntree = 1.0 - minuteJoueeEntrant; // 🔥 Correction pour la vraie minute d’entrée
+
+                // 🔥 Trouver le joueur sortant (celui qui a joué avant cette minute)
+                terrainDTO.getTitulaires().stream()
+                        .filter(j -> Math.abs(j.getMinutesJouees() - minuteEntree) < 0.001)
+                        .findFirst()
+                        .ifPresent(joueurSortant -> {
+                            historique.add(new EvenementMatchDTO(
+                                    idRencontre,
+                                    joueurSortant.getJid(),
+                                    joueurSortant.getNom(),
+                                    (int) (minuteEntree * 90),
+                                    "SORTIE",
+                                    null,
+                                    "🟥⬅️" // Icône pour sortie
+                            ));
+                        });
+
+                // ✅ Ajout du joueur entrant à la même minute
                 historique.add(new EvenementMatchDTO(
                         idRencontre,
                         idEntrant,
                         remplacant.getNom(),
-                        minuteEntree.intValue(),
-                        "REMPLACEMENT",
+                        (int) (minuteEntree * 90),
+                        "ENTRÉE",
                         null,
-                        null
+                        "🟩➡️" // Icône pour entrée
                 ));
             }
         }
 
+        // 📌 Trier les événements chronologiquement
         historique.sort(Comparator.comparingInt(EvenementMatchDTO::getMinute));
 
         log.info("✅ {} événements trouvés pour la rencontre ID={} ", historique.size(), idRencontre);
+
+        // ✅ Mettre à jour en temps réel via WebSocket (si utilisé)
+        messagingTemplate.convertAndSend("/topic/historique/" + idRencontre, historique);
+
+        log.info("📡 WebSocket : Historique des événements mis à jour pour la rencontre ID={}", idRencontre);
+
         return historique;
     }
 
 
-    // -------------------------------------------------------------------------
-    // 📌 5️⃣ VÉRIFICATIONS ET MISES À JOUR TRANSACTIONNELLES
-    // -------------------------------------------------------------------------
+
+
+
+
+
+
+    private RencontreDTO mapToDTO(Rencontre rencontre) {
+        if (rencontre == null) {
+            return null;
+        }
+
+        // Conversion des feuilles de match en DTOs
+        List<FeuilleDeMatchDTO> feuillesDeMatchDTO = rencontre.getFeuilleDeMatchs().stream()
+                .map(feuille -> {
+                    // 1️⃣ Création explicite des listes
+                    List<Long> passeursId = feuille.getPasseurs() != null
+                            ? feuille.getPasseurs().stream().map(Joueur::getJid).collect(Collectors.toList())
+                            : new ArrayList<>();
+
+                    List<String> nomsPasseurs = feuille.getPasseurs() != null
+                            ? feuille.getPasseurs().stream().map(Joueur::getNom).collect(Collectors.toList())
+                            : new ArrayList<>();
+
+                    return new FeuilleDeMatchDTO(
+                            feuille.getFeuilleId(),
+                            rencontre.getRid(),
+                            feuille.getJid(),
+                            feuille.getJoueur().getNom(),
+                            feuille.getJoueur().getPoste().name(),
+                            feuille.getButs() != null ? feuille.getButs() : 0, // ✅ Cast en `int`
+                            feuille.getPasses() != null ? feuille.getPasses() : 0, // ✅ Cast en `int`
+                            feuille.getCote() != null ? feuille.getCote() : 5.0, // ✅ Cast en `double`
+                            feuille.getMinutesJouees() != null ? feuille.getMinutesJouees() : 0.0, // ✅ Cast en `double`
+                            feuille.isAjoue(),
+                            feuille.isTitulaire(),
+                            feuille.getButArreter(),
+                            feuille.getButEncaisser(),
+                            passeursId,  // ✅ Passer `List<Long>` directement
+                            nomsPasseurs // ✅ Passer `List<String>` directement
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return new RencontreDTO(
+                rencontre.getRid(),
+                rencontre.getChampionnat().getIdChamp(),
+                rencontre.getScoreEquipeLocale(),
+                rencontre.getNomAdversaire(),
+                rencontre.getButAdversaire(),
+                rencontre.getDivisionAdversaire(), // ✅ Correctement mappé
+                rencontre.getHommeDuMatch().getJid(),
+                rencontre.getNomHommeDuMatch(),
+                rencontre.getStatutRencontre(),
+                feuillesDeMatchDTO // ✅ Liste correcte des `FeuilleDeMatchDTO`
+        );
+    }
+
+
+    /**
+     * ✅ Retourne la liste des postes compatibles avec un poste donné.
+     */
+    /**
+     * 📌 Retourne la liste des postes compatibles avec un poste donné (alignée sur le front-end).
+     */
+    private List<String> getPostesCompatibles(String posteKey) {
+        Map<String, List<String>> mappingFlexible = Map.ofEntries(
+                Map.entry("GB", List.of("GB")),
+                Map.entry("DC_CENTRAL", List.of("DC_DROIT", "DC_GAUCHE", "DC_CENTRAL", "DD", "DG", "MDF")),
+                Map.entry("DC_DROIT", List.of("DC_DROIT", "DC_CENTRAL", "DD", "DG", "DC_GAUCHE", "MDF")),
+                Map.entry("DC_GAUCHE", List.of("DC_DROIT", "DC_GAUCHE", "DC_CENTRAL", "DG", "DD", "MDF")),
+                Map.entry("DD", List.of("DD", "DC_DROIT", "MDF", "DC_CENTRAL", "DG", "DC_GAUCHE")),
+                Map.entry("DG", List.of("DG", "DC_GAUCHE", "MDF", "DC_CENTRAL", "DD", "DC_DROIT")),
+                Map.entry("MDF", List.of("MDF", "MR", "MO", "DG", "DD", "DC_CENTRAL", "DC_GAUCHE", "DC_DROIT")),
+                Map.entry("MR", List.of("MR", "MO", "MDF")),
+                Map.entry("MO", List.of("MO", "MR", "MDF", "AIG", "AID", "SA", "AC_DROIT", "AC_GAUCHE")),
+                Map.entry("AIG", List.of("AIG", "AID", "AC", "SA", "AC_GAUCHE", "AC_DROIT")),
+                Map.entry("AID", List.of("AIG", "AID", "AC", "SA", "AC_GAUCHE", "AC_DROIT")),
+                Map.entry("AC", List.of("AIG", "AID", "AC", "AC_DROIT", "AC_GAUCHE", "SA")),
+                Map.entry("SA", List.of("AIG", "AID", "AC", "SA", "AC_DROIT", "AC_GAUCHE", "MO")),
+                Map.entry("AC_DROIT", List.of("AIG", "AID", "AC", "SA", "AC_DROIT", "AC_GAUCHE", "MO")),
+                Map.entry("AC_GAUCHE", List.of("AIG", "AID", "AC", "SA", "AC_DROIT", "AC_GAUCHE", "MO"))
+        );
+
+        return mappingFlexible.getOrDefault(posteKey, List.of(posteKey));
+    }
 
     /**
      * ✅ Met à jour les buts et passes d'un joueur dans une transaction distincte.
@@ -784,7 +1477,6 @@ public class RencontreServiceImpl implements RencontreService {
     }
 
 
-
     /**
      * ✅ Récupère les statistiques des joueurs pour une rencontre donnée.
      */
@@ -795,9 +1487,10 @@ public class RencontreServiceImpl implements RencontreService {
         Rencontre rencontre = rencontreRepository.findById(idRencontre)
                 .orElseThrow(() -> new IllegalArgumentException("❌ Rencontre introuvable (ID=" + idRencontre + ")"));
 
-        return rencontre.getFeuilleDeMatchs().stream()
+        List<StatistiquesRencontreDTO> statsRencontre = rencontre.getFeuilleDeMatchs().stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Filtrage joueurs ayant joué
                 .map(feuille -> new StatistiquesRencontreDTO(
-                        feuille.getJoueurId(),
+                        feuille.getJid(),
                         feuille.getJoueur().getNom(),
                         feuille.getJoueur().getClass().getSimpleName(),
                         feuille.getJoueur().getPoste().name(),
@@ -806,208 +1499,25 @@ public class RencontreServiceImpl implements RencontreService {
                         feuille.getPasses(),
                         feuille.getPasses() / Math.max(feuille.getMinutesJouees(), 1),
                         (feuille.getButs() + feuille.getPasses()) / 2.0,
-                        feuille.getMoyenneCote(),
+                        feuille.getCote(),
                         (feuille.getButs() * 3) + feuille.getPasses(),
-                        0, // pointsParMinute si besoin
+                        0,
                         feuille.getMinutesJouees(),
+                        feuille.getButArreter(),  // ✅ Ajout des buts arrêtés
+                        feuille.getButEncaisser(), // ✅ Ajout des buts encaissés
                         rencontre.getRid(),
                         feuille.getPasseurs().stream().map(Joueur::getJid).toList(),
                         feuille.getPasseurs().stream().map(Joueur::getNom).toList()
                 ))
                 .toList();
+
+        messagingTemplate.convertAndSend("/topic/stats/" + idRencontre, statsRencontre);
+
+        log.info("📡 WebSocket : Statistiques mises à jour pour la rencontre ID={}", idRencontre);
+
+        return statsRencontre;
     }
 
-
-    /**
-     * ✅ Met à jour les statistiques du match (FeuilleDeMatch).
-     */
-    private void majStatsFeuilleDeMatch(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO) {
-        feuillesProjections.forEach(feuilleProjection -> {
-            // Convertir FeuilleDeMatchProjection en FeuilleDeMatchDTO
-            FeuilleDeMatchDTO feuilleDTO = new FeuilleDeMatchDTO(feuilleProjection.getId(),
-                    feuilleProjection.getRid(),
-                    feuilleProjection.getJid(),
-                    feuilleProjection.getNom(),
-                    feuilleProjection.getPoste(),
-                    feuilleProjection.getButs(),
-                    feuilleProjection.getPasses(),
-                    feuilleProjection.getMoyenneCote(),
-                    feuilleProjection.getMinutesJouees(),
-                    feuilleProjection.getAJoue(),
-                    feuilleProjection.isTitulaire(),
-                    feuilleProjection.getButArreter(),
-                    feuilleProjection.getButEncaisser(),
-                    parsePasseurs(feuilleProjection.getPasseursIds()),  // Assumer que parsePasseurs est une méthode pour convertir en List<Long>
-                    parseNomsPasseurs(feuilleProjection.getNomsPasseurs())); // Pareil pour nomsPasseurs
-
-            // Convertir la FeuilleDeMatchDTO en StatistiquesRencontreDTO
-            StatistiquesRencontreDTO stats = StatistiquesRencontreDTO.fromFeuilleDeMatch(feuilleDTO);
-
-            // Effectuer la mise à jour dans la base de données
-            feuilleDeMatchRepository.majStatsFeuilleDeMatch(
-                    feuilleDTO.getId(),
-                    stats.getButs(),
-                    stats.getPasses(),
-                    clotureDTO.getCotes().getOrDefault(feuilleDTO.getJid(), 6.0),
-                    stats.getMinutesJouees(),
-                    Poste.fromString(feuilleDTO.getPoste()).isGardien(),
-                    Poste.fromString(feuilleDTO.getPoste()).isGardien() ? clotureDTO.getButAdversaire() : 0,
-                    Poste.fromString(feuilleDTO.getPoste()).isGardien() ? clotureDTO.getButsArretes().getOrDefault(feuilleDTO.getJid(), 0) : 0
-            );
-        });
-
-    }
-
-
-
-    private void majStatsChampionnat(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO, Rencontre rencontre) {
-        // Convertir les projections en StatistiquesRencontreDTO
-        List<StatistiquesRencontreDTO> statsRencontres = feuillesProjections.stream()
-                .map(feuilleProjection -> StatistiquesRencontreDTO.fromFeuilleDeMatchProjection(feuilleProjection))
-                .collect(Collectors.toList());
-
-        // Utiliser le DTO StatistiquesChampionnatDTO pour la mise à jour des stats du championnat
-        StatistiquesChampionnatDTO statsChampionnat = StatistiquesChampionnatDTO.fromChampionnat(statsRencontres, rencontre.getChampionnat().getIdChamp());
-
-        // Mettre à jour les statistiques du championnat dans la base de données
-        statChampionnatRepository.majStatsChampionnat(
-                statsChampionnat.getJoueurId(),
-                statsChampionnat.getChampionnatId(),
-                statsChampionnat.getButsChamp(),
-                statsChampionnat.getPassesChamp(),
-                statsChampionnat.getMinutesJoueesChamp(),
-                statsChampionnat.getCoteChamp(),
-                statsChampionnat.getPointsChamp()
-        );
-    }
-
-
-
-
-
-    private void majStatsJoueur(List<FeuilleDeMatchProjection> feuillesProjections, ClotureRencontreDTO clotureDTO) {
-        // Convertir les projections en FeuilleDeMatchDTO
-        feuillesProjections.forEach(feuilleProjection -> {
-            // Convertir chaque projection en DTO FeuilleDeMatchDTO
-            FeuilleDeMatchDTO feuilleDeMatchDTO = new FeuilleDeMatchDTO(
-                    feuilleProjection.getId(),
-                    feuilleProjection.getRid(),
-                    feuilleProjection.getJid(),
-                    feuilleProjection.getNom(),
-                    feuilleProjection.getPoste(),
-                    feuilleProjection.getButs(),
-                    feuilleProjection.getPasses(),
-                    feuilleProjection.getMoyenneCote(),
-                    feuilleProjection.getMinutesJouees(),
-                    feuilleProjection.getAJoue(),
-                    feuilleProjection.isTitulaire(),
-                    feuilleProjection.getButArreter(),
-                    feuilleProjection.getButEncaisser(),
-                    parsePasseurs(feuilleProjection.getPasseursIds()),  // Conversion du champ String en Liste<Long>
-                    parseNomsPasseurs(feuilleProjection.getNomsPasseurs()) // Conversion du champ String en Liste<String>
-            );
-
-            // Utiliser le DTO StatistiquesDTO pour la mise à jour des stats globales du joueur
-            StatistiquesDTO statsJoueur = StatistiquesDTO.fromRencontres(Collections.singletonList(StatistiquesRencontreDTO.fromFeuilleDeMatch(feuilleDeMatchDTO)));
-
-            // Mettre à jour les statistiques globales du joueur dans la base de données
-            joueurRepository.majStatsJoueur(
-                    statsJoueur.getJoueurId(),
-                    statsJoueur.getButs(),
-                    statsJoueur.getPasses(),
-                    statsJoueur.getTotalMinutesJouees(),
-                    statsJoueur.getCote()
-            );
-        });
-    }
-
-
-
-
-
-
-
-
-    private List<Long> parsePasseurs(String passeursIds) {
-        if (passeursIds != null && !passeursIds.isEmpty()) {
-            return Arrays.stream(passeursIds.split(","))
-                    .map(Long::parseLong) // Convertit chaque ID en Long
-                    .collect(Collectors.toList());
-        } else {
-            return new ArrayList<>();
-        }
-    }
-
-
-    private List<String> parseNomsPasseurs(String nomsPasseurs) {
-        if (nomsPasseurs != null && !nomsPasseurs.isEmpty()) {
-            return Arrays.asList(nomsPasseurs.split(",")); // Convertit directement en liste de String
-        } else {
-            return new ArrayList<>();
-        }
-    }
-
-
-
-    private int calculerPointsRencontre(Rencontre rencontre) {
-        if (rencontre.getScoreEquipeLocale() > rencontre.getButAdversaire()) {
-            return 3; // ✅ Victoire → 3 points
-        } else if (rencontre.getScoreEquipeLocale() == rencontre.getButAdversaire()) {
-            return 1; // 🏳️ Match nul → 1 point
-        } else {
-            return 0; // ❌ Défaite → 0 point
-        }
-    }
-
-    private RencontreDTO mapToDTO(Rencontre rencontre) {
-        if (rencontre == null) {
-            return null;
-        }
-
-        // Conversion des feuilles de match en DTOs
-        List<FeuilleDeMatchDTO> feuillesDeMatchDTO = rencontre.getFeuilleDeMatchs().stream()
-                .map(feuille -> {
-                    // 1️⃣ Création explicite des listes
-                    List<Long> passeursId = feuille.getPasseurs() != null
-                            ? feuille.getPasseurs().stream().map(Joueur::getJid).collect(Collectors.toList())
-                            : new ArrayList<>();
-
-                    List<String> nomsPasseurs = feuille.getPasseurs() != null
-                            ? feuille.getPasseurs().stream().map(Joueur::getNom).collect(Collectors.toList())
-                            : new ArrayList<>();
-
-                    return new FeuilleDeMatchDTO(
-                            feuille.getFeuilleId(),
-                            rencontre.getRid(),
-                            feuille.getJoueurId(),
-                            feuille.getJoueur().getNom(),
-                            feuille.getJoueur().getPoste().name(),
-                            feuille.getButs() != null ? feuille.getButs() : 0, // ✅ Cast en `int`
-                            feuille.getPasses() != null ? feuille.getPasses() : 0, // ✅ Cast en `int`
-                            feuille.getMoyenneCote() != null ? feuille.getMoyenneCote() : 5.0, // ✅ Cast en `double`
-                            feuille.getMinutesJouees() != null ? feuille.getMinutesJouees() : 0.0, // ✅ Cast en `double`
-                            feuille.getAJoue() != null ? feuille.getAJoue() : false, // ✅ Éviter `null`
-                            feuille.isTitulaire(),
-                            feuille.getButArreter(),
-                            feuille.getButEncaisser(),
-                            passeursId,  // ✅ Passer `List<Long>` directement
-                            nomsPasseurs // ✅ Passer `List<String>` directement
-                    );
-                })
-                .collect(Collectors.toList());
-
-        return new RencontreDTO(
-                rencontre.getRid(),
-                rencontre.getChampionnat().getIdChamp(),
-                rencontre.getScoreEquipeLocale(),
-                rencontre.getNomAdversaire(),
-                rencontre.getButAdversaire(),
-                rencontre.getDivisionAdversaire(), // ✅ Correctement mappé
-                rencontre.getNomHommeDuMatch(),
-                rencontre.getStatutRencontre(),
-                feuillesDeMatchDTO // ✅ Liste correcte des `FeuilleDeMatchDTO`
-        );
-    }
 
 
 

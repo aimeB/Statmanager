@@ -8,9 +8,8 @@ describe('StatCompositeComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [StatCompositeComponent]
-    })
-    .compileComponents();
+      imports: [StatCompositeComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(StatCompositeComponent);
     component = fixture.componentInstance;

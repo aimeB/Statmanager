@@ -9,7 +9,7 @@
 
 mat-card {
   width: 95%;
-  max-width: 1200px;  // ✅ Plus grand cadre pour éviter les coupures
+  max-width: 1200px; // ✅ Plus grand cadre pour éviter les coupures
   padding: 20px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.85); // ✅ Effet sombre type "mode nuit"
@@ -26,10 +26,11 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  justify-content: space-between; 
+  justify-content: space-between;
 }
 
-.titulaires-container, .remplacants-container {
+.titulaires-container,
+.remplacants-container {
   flex: 1;
   display: flex;
   flex-wrap: wrap;
@@ -44,7 +45,7 @@ h3 {
   width: calc(20% - 10px); // ✅ Ajustement dynamique selon la taille de l'écran
   min-width: 100px;
   height: 140px;
-  background: linear-gradient(135deg, #4CAF50, #2E7D32); // ✅ Vert pour titulaires
+  background: linear-gradient(135deg, #4caf50, #2e7d32); // ✅ Vert pour titulaires
   color: white;
   text-align: center;
   font-size: 1rem;
@@ -55,7 +56,9 @@ h3 {
   justify-content: center;
   border-radius: 10px;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
   box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.3);
 }
 
@@ -83,12 +86,12 @@ button:disabled {
 }
 
 button:not(:disabled) {
-  background: #03A9F4;
+  background: #03a9f4;
   color: white;
 }
 
 button:not(:disabled):hover {
-  background: #0288D1;
+  background: #0288d1;
 }
 
 /* ✅ Ajout de la compatibilité mobile */

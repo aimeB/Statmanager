@@ -132,7 +132,7 @@ public class JoueurServiceImpl implements JoueurService {
                     JoueurStatGlobalDTO dto = new JoueurStatGlobalDTO(
                             projection.getJid(),
                             projection.getNom(),
-                            projection.getTypeJoueur().getSimpleName() , // ✅ Convertir `Class<?>` en `String`
+                            projection.getTypeJoueur() , // ✅ Convertir `Class<?>` en `String`
                             projection.getPoste(),
                             projection.getTotalButs(),
                             projection.getTotalPasses(),
@@ -176,7 +176,7 @@ public class JoueurServiceImpl implements JoueurService {
         JoueurStatGlobalDTO dto = new JoueurStatGlobalDTO(
                 projection.getJid(),
                 projection.getNom(),
-                projection.getTypeJoueur().getSimpleName() ,
+                projection.getTypeJoueur() ,
                 projection.getPoste(),
                 projection.getTotalButs(),
                 projection.getTotalPasses(),
@@ -255,7 +255,7 @@ public class JoueurServiceImpl implements JoueurService {
                     JoueurStatGlobalDTO dto = new JoueurStatGlobalDTO(
                             projection.getJid(),
                             projection.getNom(),
-                            projection.getTypeJoueur().getSimpleName() ,
+                            projection.getTypeJoueur() ,
                             projection.getPoste(),
                             projection.getTotalButs(),
                             projection.getTotalPasses(),

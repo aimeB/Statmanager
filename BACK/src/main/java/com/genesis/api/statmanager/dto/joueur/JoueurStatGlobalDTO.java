@@ -95,7 +95,7 @@ public class JoueurStatGlobalDTO {
         return new JoueurStatGlobalDTO(
                 projection.getJid(),
                 projection.getNom(),
-                projection.getTypeJoueur().getSimpleName() , // ✅ Convertir `Class<?>` en `String`
+                projection.getTypeJoueur() , // ✅ Convertir `Class<?>` en `String`
                 projection.getPoste(),
                 projection.getTotalButs(),
                 projection.getTotalPasses(),

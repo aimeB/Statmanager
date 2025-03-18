@@ -5,6 +5,7 @@ import com.genesis.api.statmanager.dto.rencontre.*;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 📌 Service de gestion des rencontres (matchs).
@@ -24,11 +25,14 @@ public interface RencontreService {
     TerrainDTO creerNouvelleRencontre(VestiaireDTO vestiaireDTO);
 
     // 📌 3️⃣ GESTION DU TERRAIN ET MATCH EN COURS
-    TerrainDTO initialiserTerrain(Long idRencontre );
+    TerrainDTO initialiserTerrain(Long idRencontre, TerrainDTO terrainDTO);
     TerrainDTO getTerrain(Long idRencontre);
     TerrainDTO updateStatsEnTempsReel(Long idRencontre, Long idJoueur, int buts, Long idPasseur);
     TerrainDTO effectuerRemplacement(RemplacementDTO remplacementDTO);
 
+    void mettreAJourStatsGardien(Long idRencontre, Long idJoueur, int butArreter);
+
+    void mettreAJourButAdversaire(Long rencontreId, int nouveauScore);
     // 📌 4️⃣ FIN DE MATCH ET MISE À JOUR DES STATS
     FinMatchDTO cloturerRencontre(ClotureRencontreDTO clotureDTO);
     List<EvenementMatchDTO> getHistoriqueEvenements(Long idRencontre);
@@ -40,4 +44,6 @@ public interface RencontreService {
     void updatePassesTransactionnel(Long idFeuilleMatch, int passes);
 
     List<StatistiquesRencontreDTO> getStatistiquesRencontre(Long idRencontre);
+    void mettreAJourCotes(Long idRencontre, Map<Long, Double> cotesJoueurs);
+    TerrainDTO construireTerrain(Long idRencontre);
 }

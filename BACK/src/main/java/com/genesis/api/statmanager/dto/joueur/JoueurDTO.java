@@ -56,7 +56,7 @@ public class JoueurDTO {
                 .passes(projection.getTotalPasses())
                 .minutesJouees(projection.getTotalMinutesJouees())
                 .moyenneCote(projection.getTotalMoyenneCote())
-                .typeJoueur( projection.getTypeJoueur().getSimpleName() ) // ✅ Convertir `Class<?>` en `String`
+                .typeJoueur( projection.getTypeJoueur() ) // ✅ Convertir `Class<?>` en `String`
                 .build();
     }
 }

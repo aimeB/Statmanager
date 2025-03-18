@@ -1,4 +1,3 @@
-
 import { FeuilleDeMatchDTO } from './../../feuille-de-match/models/feuille-de-match.model';
 
 export interface TerrainDTO {
@@ -9,15 +8,10 @@ export interface TerrainDTO {
   butEquipe: number;
   butAdversaire: number;
   divisionAdversaire: string;
-  titulaires: FeuilleDeMatchDTO[];  // ✅ Remplacement de Joueur par FeuilleDeMatchDTO
+  titulaires: FeuilleDeMatchDTO[]; // ✅ Remplacement de Joueur par FeuilleDeMatchDTO
   remplacants: FeuilleDeMatchDTO[]; // ✅ Remplacement de Joueur par FeuilleDeMatchDTO
-  terrainJoueurs: { [poste: string]: FeuilleDeMatchDTO }; // ✅ Mise à jour pour gérer les stats
+  terrainJoueurs: { [poste: string]: FeuilleDeMatchDTO | null }; // ✅ Ajout de "| null"
   butsModifies: { [key: number]: number };
   passesModifies: { [key: number]: number };
   minutesJouees: { [key: number]: number };
-
-
-  
-
-
 }

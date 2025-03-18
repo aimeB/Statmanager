@@ -133,7 +133,7 @@ public interface StatChampionnatRepository extends JpaRepository<StatChampionnat
     @Query("""
         SELECT COALESCE(SUM(f.minutesJouees), 0)
         FROM FeuilleDeMatch f 
-        WHERE f.joueurId = :joueurId AND f.rencontre.championnat.idChamp = :championnatId
+        WHERE f.jid = :joueurId AND f.rencontre.championnat.idChamp = :championnatId
     """)
     int sumMinutesJoueesByJoueurAndChampionnat(@Param("joueurId") Long joueurId, @Param("championnatId") Long championnatId);
 
@@ -149,7 +149,7 @@ public interface StatChampionnatRepository extends JpaRepository<StatChampionnat
     UPDATE StatChampionnat s
     SET s.cleanSheet = s.cleanSheet + 1
     WHERE s.joueurId IN (
-        SELECT f.joueurId FROM FeuilleDeMatch f
+        SELECT f.jid FROM FeuilleDeMatch f
         WHERE f.rencontre.rid = :rencontreId AND f.joueur.typeJoueur IN ('GARDIEN', 'DEFENSEUR')
     )
     AND :butAdversaire = 0

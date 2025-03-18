@@ -12,17 +12,24 @@ import { NgIf, NgFor } from '@angular/common';
   template: `
     <div class="championnats-container">
       <h2>🏆 Derniers Championnats</h2>
-      
+
       <ul>
-        <li *ngFor="let championnat of championnats" (click)="selectChampionnat(championnat.idChamp)">
-        Championnat n°{{ championnat.idChamp }}     ------   {{ championnat.division }} - {{ championnat.statut }}
+        <li
+          *ngFor="let championnat of championnats"
+          (click)="selectChampionnat(championnat.idChamp)"
+        >
+          Championnat n°{{ championnat.idChamp }} ------ {{ championnat.division }} -
+          {{ championnat.statut }}
         </li>
       </ul>
 
-      <app-championnat-detail *ngIf="selectedChampionnatId" [idChampionnat]="selectedChampionnatId"></app-championnat-detail>
+      <app-championnat-detail
+        *ngIf="selectedChampionnatId"
+        [idChampionnat]="selectedChampionnatId"
+      ></app-championnat-detail>
     </div>
   `,
-  styleUrls: ['./championnat-list.component.scss']
+  styleUrls: ['./championnat-list.component.scss'],
 })
 export class ChampionnatListComponent implements OnInit {
   championnats: ChampionnatLightDTO[] = [];
@@ -37,8 +44,8 @@ export class ChampionnatListComponent implements OnInit {
   /** 📌 Charge la liste des 10 derniers championnats */
   loadChampionnats(): void {
     this.championnatService.getChampionnatOverview().subscribe({
-      next: (data) => this.championnats = data.derniersChampionnats,
-      error: (err) => console.error('❌ Erreur lors du chargement des championnats', err)
+      next: (data) => (this.championnats = data.derniersChampionnats),
+      error: (err) => console.error('❌ Erreur lors du chargement des championnats', err),
     });
   }
 

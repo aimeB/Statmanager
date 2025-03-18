@@ -20,6 +20,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface JoueurRepository extends JpaRepository<com.genesis.api.statmanager.model.Joueur, Long> {
@@ -32,23 +33,26 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
            j.totalButs AS totalButs, j.totalPasses AS totalPasses,
            j.totalMinutesJouees AS totalMinutesJouees,
            j.totalMoyenneCote AS totalMoyenneCote,
-           TYPE(j) AS typeJoueur
+           j.typeJoueur AS typeJoueur 
     FROM Joueur j WHERE j.jid = :id
 """)
 
     Optional<JoueurProjection> findJoueurProjectionById(@Param("id") Long id);
 
+
+
+
     /**
      * ✅ Récupère plusieurs joueurs par leurs IDs sous forme de projection.
      */
     @Query("""
-        SELECT j.jid AS jid, j.nom AS nom, j.poste AS poste, 
-               j.totalButs AS totalButs, j.totalPasses AS totalPasses, 
-               j.totalMinutesJouees AS totalMinutesJouees, 
-               j.totalMoyenneCote AS totalMoyenneCote, 
-               TYPE(j) AS typeJoueur
-        FROM Joueur j WHERE j.jid IN :ids
-    """)
+    SELECT j.jid AS jid, j.nom AS nom, j.poste AS poste, 
+           j.totalButs AS totalButs, j.totalPasses AS totalPasses, 
+           j.totalMinutesJouees AS totalMinutesJouees, 
+           j.totalMoyenneCote AS totalMoyenneCote, 
+           j.typeJoueur AS typeJoueur 
+    FROM Joueur j WHERE j.jid IN :ids
+""")
     List<JoueurProjection> findAllJoueurProjectionsByIds(@Param("ids") List<Long> ids);
 
     /**
@@ -100,20 +104,25 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
 
     @Query("""
     SELECT new com.genesis.api.statmanager.dto.global.StatistiquesRencontreDTO(
-        COALESCE(f.joueurId, j.jid), j.nom, j.typeJoueur, j.poste,
+        COALESCE(f.jid, j.jid), j.nom, j.typeJoueur, j.poste,
         CAST(COALESCE(f.buts, 0) AS int),
         CAST(COALESCE(f.passes, 0) AS int),
-        CAST(COALESCE(f.moyenneCote, 5.0) AS double),
+        CAST(COALESCE(f.cote, 5.0) AS double),
         CAST(COALESCE(f.minutesJouees, 0) AS double),
         CAST(COALESCE(f.rencontre.rid, 0) AS Long)
     ) 
     FROM Joueur j
-    LEFT JOIN FeuilleDeMatch f ON j.jid = f.joueurId 
+    LEFT JOIN FeuilleDeMatch f ON j.jid = f.jid 
     WHERE j.jid = :id 
     ORDER BY f.rencontre.rid DESC
 """)
     Page<StatistiquesRencontreDTO> findDerniersMatchsByJoueur(@Param("id") Long id, Pageable pageable);
 
+    @Query("""
+    SELECT j.jid AS jid, j.nom AS nom, j.poste AS poste
+    FROM Joueur j WHERE j.jid IN :ids
+""")
+    List<JoueurLightProjection> findAllJoueurLightProjectionsByIds(@Param("ids") List<Long> ids);
 
 
     @Query("""
@@ -133,9 +142,20 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
 
 
     @Query("""
+    SELECT j.jid AS jid, j.nom AS nom, j.poste AS poste 
+    FROM Joueur j 
+    WHERE j.jid IN :joueurIds
+""")
+    List<JoueurLightProjection> findPostesByJoueurIds(@Param("joueurIds") Set<Long> joueurIds);
+
+
+
+
+
+    @Query("""
     SELECT p.jid FROM FeuilleDeMatch f 
     JOIN f.passeurs p 
-    WHERE f.joueurId = :id
+    WHERE f.jid = :id
 """)
     List<Long> findPasseursByJoueur(@Param("id") Long id);
 
@@ -147,15 +167,33 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
         SUM(f.buts), 
         SUM(f.passes), 
         SUM(f.minutesJouees), 
-        AVG(f.moyenneCote), 
+        AVG(f.cote), 
         SUM(f.buts * 3 + f.passes)
     )
     FROM FeuilleDeMatch f
-    WHERE f.joueurId = :id
+    WHERE f.jid = :id
     GROUP BY f.rencontre.divisionAdversaire
 """)
     List<PerformanceParDivision> findPerformancesParDivision(@Param("id") Long id);
 
+
+
+
+
+
+
+    @Modifying
+    @Query("""
+    UPDATE Joueur j
+    SET j.butArreter = j.butArreter + :butArreter,
+        j.butEncaisser = j.butEncaisser + :butEncaisser,
+        j.cleanSheet = j.cleanSheet + :cleanSheet
+    WHERE j.jid = :joueurId AND j.typeJoueur = 'Gardien'
+""")
+    void majStatsGardien(@Param("joueurId") Long joueurId,
+                         @Param("butArreter") int butArreter,
+                         @Param("butEncaisser") int butEncaisser,
+                         @Param("cleanSheet") int cleanSheet);
 
 
 
@@ -168,7 +206,7 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
         j.totalPasses = j.totalPasses + :passes, 
         j.totalMinutesJouees = j.totalMinutesJouees + :minutesJouees,
         j.totalMoyenneCote = CASE 
-            WHEN j.totalMinutesJouees + :minutesJouees = 0 THEN :moyenneCote
+            WHEN (j.totalMinutesJouees + :minutesJouees) = 0 THEN :moyenneCote
             ELSE ((j.totalMoyenneCote * j.totalMinutesJouees) + (:moyenneCote * :minutesJouees)) / (j.totalMinutesJouees + :minutesJouees)
         END
     WHERE j.jid = :joueurId
@@ -181,11 +219,25 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
 
 
 
+
+
+
+
+
+
+
+
     @Query("""
     SELECT COUNT(f.feuilleId) FROM FeuilleDeMatch f
-    WHERE f.joueurId = :joueurId
+    WHERE f.jid = :joueurId
 """)
     int countMatchsByJoueur(@Param("joueurId") Long joueurId);
+
+
+
+
+
+
 
 
 
@@ -218,6 +270,10 @@ public interface JoueurRepository extends JpaRepository<com.genesis.api.statmana
     )
 """)
     void calculerPointsFinChampionnat();
+
+
+
+
 
     @Query("""
     SELECT new com.genesis.api.statmanager.dto.global.StatistiquesDTO(

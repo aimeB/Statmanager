@@ -16,59 +16,59 @@ import java.util.stream.Collectors;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class FeuilleDeMatchDTO {
 
-    private Long id; // ✅ ID de la feuille de match
+    private Long feuilleId; // ✅ ID de la feuille de match
     private Long rid; // ✅ ID de la rencontre
-    private Long jid; // ✅ ID du joueur
+    private Long jid;
+
     private String nom;
     private String poste;
-
     private int buts = 0;
     private int passes = 0;
-    private double moyenneCote = 5.0;
+    private double cote = 5.0;
     private double minutesJouees = 0; // ✅ Stocke `double` basé sur `TimePlay`
-
+    @Getter
     private boolean titulaire; // ✅ Si le joueur est titulaire
-    private Boolean aJoue; // ✅ Si le joueur est entré en jeu
-
+    @Getter
+    private boolean ajoue; // ✅ Si le joueur est entré en jeu
     private int butArreter = 0; // ✅ Buts arrêtés (pour les gardiens)
     private int butEncaisser = 0; // ✅ Buts encaissés (pour les gardiens)
-
     private List<Long> passeursId; // ✅ IDs des passeurs
     private List<String> nomsPasseurs; // ✅ Noms des passeurs (pour affichage)
 
 
 
 
-    public FeuilleDeMatchDTO(Long feuilleId, Long rid, Long joueurId, String nom, String poste,
-                             int buts, int passes, double moyenneCote, double minutesJouees,
-                             Boolean aJoue, boolean titulaire, int butArreter, int butEncaisser,
-                             List<Long> passeursId, List<String> nomsPasseurs) {
-        this.id = feuilleId;
+
+
+
+    public FeuilleDeMatchDTO(Long feuilleId, Long rid, Long jid, String nom, String poste,
+                             int buts, int passes, double cote, double minutesJouees,
+                             boolean ajoue, boolean titulaire, int butArreter, int butEncaisser,
+                             List<Long> passeursId, List<String> nomsPasseurs
+                             ) {
+        this.jid = jid;
         this.rid = rid;
-        this.jid = joueurId;
+        this.jid = jid;
         this.nom = nom;
         this.poste = (poste != null && !poste.isEmpty()) ? poste : "INCONNU";
         this.buts = buts;
         this.passes = passes;
-        this.moyenneCote = moyenneCote;
+        this.cote = cote;
         this.minutesJouees = minutesJouees;
-        this.aJoue = (aJoue != null) ? aJoue : false;
+        this.ajoue = ajoue;
         this.titulaire = titulaire;
         this.butArreter = butArreter;
         this.butEncaisser = butEncaisser;
 
         this.passeursId = (passeursId != null) ? new ArrayList<>(passeursId) : new ArrayList<>();
         this.nomsPasseurs = (nomsPasseurs != null) ? new ArrayList<>(nomsPasseurs) : new ArrayList<>();
+        this.jid = jid;
     }
 
 
-
-    public FeuilleDeMatchDTO(Long feuilleId, Long rid, Long joueurId, String nom, String name, int i, int i1, double v, double v1, boolean b, boolean titulaire, int butArreter, int butEncaisser, List<Long> passeursId, List<String> nomsPasseurs) {
-    }
 
 
 
@@ -123,9 +123,9 @@ public class FeuilleDeMatchDTO {
                 projection.getPoste(),
                 projection.getButs(),
                 projection.getPasses(),
-                projection.getMoyenneCote(),
+                projection.getCote(),
                 projection.getMinutesJouees(),
-                projection.getAJoue(),
+                projection.isAjoue(),
                 projection.isTitulaire(),
                 projection.getButArreter(),
                 projection.getButEncaisser(),
@@ -139,6 +139,4 @@ public class FeuilleDeMatchDTO {
                         : new ArrayList<String>() // ✅ Ajoute explicitement `<String>`
         );
     }
-
-
 }

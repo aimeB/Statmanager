@@ -14,13 +14,14 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true) // ✅ Active toBuilder()
 public class TerrainDTO {
 
     private Long idChampionnat; // ✅ ID du championnat
     private Long idRencontre;   // ✅ ID de la rencontre
 
-    private String nomEquipe = "HERSTAL FC"; // ✅ Nom de l'équipe locale (écrit en dur)
+    @Builder.Default
+    private String nomEquipe = "HERSTAL FC";
     private String nomAdversaire;  // ✅ Nom de l'adversaire
 
     private int butEquipe = 0; // ✅ Score de l'équipe locale (calculé dynamiquement)
@@ -36,24 +37,5 @@ public class TerrainDTO {
     private Map<Long, Integer> butsModifies;   // 📌 Buts modifiés par joueur
     private Map<Long, Integer> passesModifies; // 📌 Passes modifiées par joueur
     private Map<Long, Double> minutesJouees;   // 📌 Minutes jouées (format `double`)
-
-
-
-    public TerrainDTO(Rencontre rencontre, List<FeuilleDeMatchDTO> feuillesDeMatch) {
-        this.idChampionnat = rencontre.getChampionnat().getIdChamp();
-        this.idRencontre = rencontre.getRid();
-        this.nomAdversaire = rencontre.getNomAdversaire();
-        this.divisionAdversaire = rencontre.getDivisionAdversaire();
-        this.butAdversaire = rencontre.getButAdversaire();
-
-        // ✅ Initialisation des joueurs à partir des feuilles de match
-        this.titulaires = feuillesDeMatch.stream()
-                .filter(FeuilleDeMatchDTO::isTitulaire)
-                .toList();
-
-        this.remplacants = feuillesDeMatch.stream()
-                .filter(feuille -> !feuille.isTitulaire())
-                .toList();
-    }
 
 }

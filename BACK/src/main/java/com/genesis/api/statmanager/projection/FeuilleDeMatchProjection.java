@@ -1,8 +1,10 @@
 package com.genesis.api.statmanager.projection;
 
 import com.genesis.api.statmanager.model.enumeration.Poste;
+import lombok.Value;
 
 public interface FeuilleDeMatchProjection {
+
     Long getId();
     Long getRid();
     Long getJid();
@@ -10,9 +12,10 @@ public interface FeuilleDeMatchProjection {
     String getPoste();  // ✅ Doit correspondre à `AS poste` dans la requête
     int getButs();
     int getPasses();
-    double getMoyenneCote();
+    double getCote();
+
     double getMinutesJouees();
-    Boolean getAJoue();
+    boolean isAjoue();
     boolean isTitulaire();
     int getButArreter();
     int getButEncaisser();

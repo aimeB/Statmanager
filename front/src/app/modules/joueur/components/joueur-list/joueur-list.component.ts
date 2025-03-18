@@ -8,21 +8,33 @@ import { RouterModule, Router } from '@angular/router';
 
 @Component({
   selector: 'app-joueur-list',
-  standalone: true,  // ✅ Indique que ce composant est autonome
+  standalone: true, // ✅ Indique que ce composant est autonome
   imports: [CommonModule, HttpClientModule, MatTableModule, RouterModule], // ✅ Active les pipes comme "number"
   templateUrl: './joueur-list.component.html',
-  styleUrls: ['./joueur-list.component.scss']
+  styleUrls: ['./joueur-list.component.scss'],
 })
 export class JoueurListComponent implements OnInit {
   joueurs: StatistiquesDTO[] = [];
   displayedColumns: string[] = [
-    'nom', 'typeJoueur', 'poste', 'buts', 'butsParMinute', 'passes',
-    'passesParMinute', 'moyenneButsPasses', 'coteMoyenne', 'coteParMinute',
-    'points', 'pointsParMinute', 'totalMinutesJouees'
-
+    'nom',
+    'typeJoueur',
+    'poste',
+    'buts',
+    'butsParMinute',
+    'passes',
+    'passesParMinute',
+    'moyenneButsPasses',
+    'coteMoyenne',
+    'coteParMinute',
+    'points',
+    'pointsParMinute',
+    'totalMinutesJouees',
   ];
 
-  constructor( private joueurService: JoueurService, private router: Router) {}
+  constructor(
+    private joueurService: JoueurService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.joueurService.getAllJoueursStats().subscribe((data) => {
@@ -30,8 +42,6 @@ export class JoueurListComponent implements OnInit {
       this.joueurs = data;
     });
   }
-
-
 
   rechercherJoueurParNom(nom: string) {
     console.warn(`⚠️ Joueur sans ID, recherche par nom: ${nom}`);
@@ -43,5 +53,5 @@ export class JoueurListComponent implements OnInit {
         console.error('❌ Joueur introuvable !');
       }
     });
-}
+  }
 }

@@ -8,9 +8,8 @@ describe('FinDeMatchComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FinDeMatchComponent]
-    })
-    .compileComponents();
+      imports: [FinDeMatchComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(FinDeMatchComponent);
     component = fixture.componentInstance;

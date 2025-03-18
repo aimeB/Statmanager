@@ -9,11 +9,7 @@ import { FeuilleDeMatchDTO } from '../../../feuille-de-match/models/feuille-de-m
 @Component({
   selector: 'app-joueur-selection-dialog',
   standalone: true,
-  imports: [
-    CommonModule,      
-    MatListModule,     
-    MatIconModule      
-  ],
+  imports: [CommonModule, MatListModule, MatIconModule],
   template: `
     <h2>🔄 Choisir un joueur</h2>
     <mat-list>
@@ -22,25 +18,32 @@ import { FeuilleDeMatchDTO } from '../../../feuille-de-match/models/feuille-de-m
       </mat-list-item>
     </mat-list>
   `,
-  styles: [`
-    mat-list-item {
-      cursor: pointer;
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-    }
-    mat-list-item:hover {
-      background-color: #e0f7fa;
-    }
-  `]
+  styles: [
+    `
+      mat-list-item {
+        cursor: pointer;
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+      }
+      mat-list-item:hover {
+        background-color: #e0f7fa;
+      }
+    `,
+  ],
 })
 export class JoueurSelectionDialogComponent {
   constructor(
     public dialogRef: MatDialogRef<JoueurSelectionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { joueurs: JoueurDTO[] }
+    @Inject(MAT_DIALOG_DATA) public data: { joueurs: JoueurDTO[] },
   ) {}
 
   selectionnerJoueur(joueur: JoueurDTO): void {
-    console.log("🔄 Joueur sélectionné dans le popup :", joueur);
-    this.dialogRef.close(joueur);
+    console.log('🔄 Joueur sélectionné dans le popup :', joueur);
+    this.dialogRef.close(joueur); // ✅ Renvoie le joueur sélectionné
+  }
+
+  fermerSansPasseur(): void {
+    console.log('❌ Aucun passeur sélectionné.');
+    this.dialogRef.close(null); // ✅ Renvoie `null` au composant parent
   }
 }

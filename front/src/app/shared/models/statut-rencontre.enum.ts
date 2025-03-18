@@ -4,6 +4,6 @@
  * - TERMINE : La rencontre a été jouée et finalisée.
  */
 export enum StatutRencontre {
-    EN_ATTENTE = "EN_ATTENTE",
-    TERMINE = "TERMINE"
+  EN_ATTENTE = 'EN_ATTENTE',
+  TERMINE = 'TERMINE',
 }

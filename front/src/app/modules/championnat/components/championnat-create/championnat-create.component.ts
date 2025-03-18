@@ -13,8 +13,6 @@ import { JoueurLightDTO } from '../../../joueur/models/joueur.model';
 import { Router } from '@angular/router'; // ✅ Import du Router
 import { RouterModule } from '@angular/router';
 
-
-
 @Component({
   selector: 'app-championnat-create',
   standalone: true,
@@ -25,24 +23,22 @@ import { RouterModule } from '@angular/router';
     MatButtonModule,
     MatSelectModule,
     MatCheckboxModule,
-    RouterModule
-
+    RouterModule,
   ],
   templateUrl: './championnat-create.component.html',
-  styleUrls: ['./championnat-create.component.scss']
+  styleUrls: ['./championnat-create.component.scss'],
 })
 export class ChampionnatCreateComponent {
-
-
   divisions: Division[] = ['DIV1', 'DIV2', 'DIV3', 'DIV4'];
   joueursDisponibles: JoueurLightDTO[] = [];
   joueursSelectionnes: number[] = [];
   divisionSelectionnee: Division = 'DIV1';
 
-
-
-
-  constructor(private championnatService: ChampionnatService, private joueurService: JoueurService, private router: Router) {}
+  constructor(
+    private championnatService: ChampionnatService,
+    private joueurService: JoueurService,
+    private router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.chargerJoueurs();
@@ -52,22 +48,21 @@ export class ChampionnatCreateComponent {
     this.joueurService.getJoueursLight().subscribe({
       next: (joueurs) => {
         this.joueursDisponibles = joueurs;
-     
       },
       error: (err) => {
         console.log('✅ Championnat créé avec succès !', this.joueursDisponibles);
-        console.error("❌ Erreur lors du chargement des joueurs", err);
-        alert("Impossible de charger la liste des joueurs.");
-      }
+        console.error('❌ Erreur lors du chargement des joueurs', err);
+        alert('Impossible de charger la liste des joueurs.');
+      },
     });
   }
 
   selectionnerJoueur(joueur: JoueurLightDTO): void {
     if (this.joueursSelectionnes.includes(joueur.id)) {
-      this.joueursSelectionnes = this.joueursSelectionnes.filter(id => id !== joueur.id);
+      this.joueursSelectionnes = this.joueursSelectionnes.filter((id) => id !== joueur.id);
     } else {
       if (this.joueursSelectionnes.length >= 23) {
-        alert("Vous ne pouvez sélectionner que 23 joueurs !");
+        alert('Vous ne pouvez sélectionner que 23 joueurs !');
         return;
       }
       this.joueursSelectionnes.push(joueur.id);
@@ -75,38 +70,38 @@ export class ChampionnatCreateComponent {
   }
   creerChampionnat(): void {
     if (this.joueursSelectionnes.length !== 23) {
-      alert("Veuillez sélectionner exactement 23 joueurs !");
+      alert('Veuillez sélectionner exactement 23 joueurs !');
       return;
     }
-  
+
     const dto: ChampionnatCreationDTO = {
       division: this.divisionSelectionnee,
-      joueursIds: this.joueursSelectionnes
+      joueursIds: this.joueursSelectionnes,
     };
-  
+
     this.championnatService.creerChampionnat(dto).subscribe({
       next: (championnat) => {
         console.log('✅ Championnat créé avec succès !', championnat);
         alert(`Championnat ${championnat.division} créé avec succès !`);
-  
+
         // ✅ Préparer la liste des joueurs sélectionnés
-        const joueursSelectionnesDetails = this.joueursDisponibles.filter(joueur =>
-          this.joueursSelectionnes.includes(joueur.id)
+        const joueursSelectionnesDetails = this.joueursDisponibles.filter((joueur) =>
+          this.joueursSelectionnes.includes(joueur.id),
         );
-  
+
         // ✅ Redirection avec les joueurs sélectionnés
         this.router.navigate(['/rencontres/selection'], {
           state: {
             championnatId: championnat.idChamp, // ✅ ID du championnat
-            division: championnat.division,     // ✅ Division sélectionnée
-            joueursSelectionnes: joueursSelectionnesDetails // ✅ Liste des joueurs sélectionnés
-          }
+            division: championnat.division, // ✅ Division sélectionnée
+            joueursSelectionnes: joueursSelectionnesDetails, // ✅ Liste des joueurs sélectionnés
+          },
         });
       },
       error: (err) => {
-        console.error("❌ Erreur lors de la création du championnat", err);
-        alert("Erreur lors de la création du championnat");
-      }
+        console.error('❌ Erreur lors de la création du championnat', err);
+        alert('Erreur lors de la création du championnat');
+      },
     });
   }
-}  
+}

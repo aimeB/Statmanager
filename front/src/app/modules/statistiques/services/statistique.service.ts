@@ -2,8 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { StatCritereDTO, StatTopJoueurDTO , StatCompositeDTO  } from '../models/../../joueur/models/joueur.model';
-
+import {
+  StatCritereDTO,
+  StatTopJoueurDTO,
+  StatCompositeDTO,
+} from '../models/../../joueur/models/joueur.model';
 
 @Injectable({ providedIn: 'root' })
 export class StatistiqueService {

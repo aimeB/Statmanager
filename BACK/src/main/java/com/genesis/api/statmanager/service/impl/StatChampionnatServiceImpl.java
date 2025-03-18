@@ -104,21 +104,33 @@ public class StatChampionnatServiceImpl implements StatChampionnatService {
                 .orElseThrow(() -> new IllegalArgumentException("❌ Championnat non trouvé avec ID : " + idChampionnat));
 
         statsRencontres.forEach(stats -> {
-            Long joueurId = stats.getJoueurId(); // ✅ Récupération directe de l'ID sans instancier `Joueur`
+            Long joueurId = stats.getJoueurId();
 
-            // ✅ Mise à jour des statistiques avec `joueurId`
+            // ✅ Récupération de la stat existante en base
             StatChampionnat statChampionnat = statChampionnatRepository.findByJoueurIdAndChampionnat(joueurId, championnat)
-                    .orElseGet(() -> new StatChampionnat(null, joueurId, championnat, 0, 0, 0.0, 5.0));
+                    .orElseThrow(() -> new IllegalStateException("❌ StatChampionnat manquante pour Joueur ID=" + joueurId));
 
             // ✅ Mise à jour des statistiques cumulées
             statChampionnat.setButsChamp(statChampionnat.getButsChamp() + stats.getButs());
             statChampionnat.setPassesChamp(statChampionnat.getPassesChamp() + stats.getPasses());
-            statChampionnat.setMinutesJoueesChamp(statChampionnat.getMinutesJoueesChamp() + stats.getTotalMinutesJouees());
-            statChampionnat.setMoyenneCoteChamp((statChampionnat.getMoyenneCoteChamp() + stats.getCote()) / 2);
+            statChampionnat.setMinutesJoueesChamp(statChampionnat.getMinutesJoueesChamp() + stats.getMinutesJouees());
 
-            statChampionnatRepository.saveAndFlush(statChampionnat);
+            // ✅ Mise à jour de la moyenne de la cote avec une pondération
+            if (statChampionnat.getMinutesJoueesChamp() > 0) {
+                double totalMinutes = statChampionnat.getMinutesJoueesChamp() + stats.getMinutesJouees();
+                statChampionnat.setMoyenneCoteChamp(((statChampionnat.getMoyenneCoteChamp() * statChampionnat.getMinutesJoueesChamp()) +
+                        (stats.getCote() * stats.getMinutesJouees())) / totalMinutes);
+            }
+
+            statChampionnatRepository.save(statChampionnat);
+            log.info("✅ Stat mise à jour pour JoueurID={} | Buts={} | Passes={} | Minutes={} | Cote={}",
+                    joueurId, statChampionnat.getButsChamp(), statChampionnat.getPassesChamp(),
+                    statChampionnat.getMinutesJoueesChamp(), statChampionnat.getMoyenneCoteChamp());
         });
+
+        log.info("✅ Mise à jour des statistiques du championnat terminée pour ID={}", idChampionnat);
     }
+
 
     // =========================================================================
     // 🔹 SECTION 3 : CONVERSIONS ET MAPPERS

@@ -21,38 +21,16 @@ public class StatChampionnatDTO {
     private String poste; // ✅ Poste du joueur
     private String categoriePoste; // ✅ Catégorie du poste (Défenseur, Milieu, etc.)
     private Long championnatId;
-
     private int butsChamp = 0; // ✅ Nombre de buts marqués dans le championnat
     private int passesChamp = 0; // ✅ Nombre de passes décisives
     private double minutesJoueesChamp = 0.0; // ✅ Temps de jeu cumulé
     private double moyenneCoteChamp = 5.0; // ✅ Moyenne de la cote du joueur
     // Calcul des points
     private int pointsChamp;
-    /**
-     * ✅ Constructeur à partir de l'entité `StatChampionnat` sans instancier `Joueur`.
-     */
-    public StatChampionnatDTO(StatChampionnat stat, JoueurProjection joueurProjection) {
-        if (stat != null) {
-            this.id = stat.getId();
-            this.joueurId = stat.getJoueurId(); // ✅ Utilisation directe de `joueurId`
-            this.joueurNom = joueurProjection.getNom(); // ✅ Récupération du nom via projection
+    private int cleanSheet = 0;
 
-            // ✅ Convertir String en Enum Poste
-            Poste posteEnum = (joueurProjection.getPoste() != null) ? Poste.valueOf(joueurProjection.getPoste()) : null;
 
-            // ✅ Stocker en `String` pour affichage
-            this.poste = (posteEnum != null) ? posteEnum.name() : "INCONNU";
 
-            // ✅ Obtenir la catégorie du poste (si conversion OK)
-            this.categoriePoste = (posteEnum != null) ? posteEnum.getCategoriePoste().name() : "INCONNU";
-
-            this.championnatId = stat.getChampionnat().getIdChamp();
-            this.butsChamp = stat.getButsChamp();
-            this.passesChamp = stat.getPassesChamp();
-            this.minutesJoueesChamp = stat.getMinutesJoueesChamp();
-            this.moyenneCoteChamp = stat.getMoyenneCoteChamp();
-        }
-    }
 
 
 
@@ -75,23 +53,45 @@ public class StatChampionnatDTO {
     }
 
 
-    public StatChampionnatDTO(Long id, Long joueurId, String joueurNom, Poste poste, Long championnatId,
-                              int butsChamp, int passesChamp, double minutesJoueesChamp, double moyenneCoteChamp) {
-        this.id = id;
-        this.joueurId = joueurId;
-        this.joueurNom = joueurNom;
-        this.poste = poste != null ? poste.name() : "INCONNU";
-        this.categoriePoste = poste != null ? poste.getCategoriePoste().name() : "INCONNU";
-        this.championnatId = championnatId;
-        this.butsChamp = butsChamp;
-        this.passesChamp = passesChamp;
-        this.minutesJoueesChamp = minutesJoueesChamp;
-        this.moyenneCoteChamp = moyenneCoteChamp;
+    public StatChampionnatDTO(StatChampionnat stat, JoueurProjection joueurProjection) {
+        if (stat != null) {
+            this.id = stat.getId();
+            this.joueurId = stat.getJoueurId();
+            this.joueurNom = (joueurProjection != null) ? joueurProjection.getNom() : "Inconnu";
+            this.championnatId = stat.getChampionnat().getIdChamp();
+            this.butsChamp = stat.getButsChamp();
+            this.passesChamp = stat.getPassesChamp();
+            this.minutesJoueesChamp = stat.getMinutesJoueesChamp();
+            this.moyenneCoteChamp = stat.getMoyenneCoteChamp();
+            this.cleanSheet = stat.getCleanSheet();
+
+            if (joueurProjection != null) {
+                Poste posteEnum = Poste.valueOf(joueurProjection.getPoste());
+                this.poste = posteEnum.name();
+                this.categoriePoste = posteEnum.getCategoriePoste().name();
+            } else {
+                this.poste = "INCONNU";
+                this.categoriePoste = "INCONNU";
+            }
+        }
     }
 
 
-
-
+    public StatChampionnatDTO(StatChampionnat stat) {
+        if (stat != null) {
+            this.id = stat.getId();
+            this.joueurId = stat.getJoueurId();
+            this.joueurNom = "Inconnu"; // ⚠️ Sera mis à jour plus tard avec une projection si nécessaire
+            this.championnatId = stat.getChampionnat().getIdChamp();
+            this.butsChamp = stat.getButsChamp();
+            this.passesChamp = stat.getPassesChamp();
+            this.minutesJoueesChamp = stat.getMinutesJoueesChamp();
+            this.moyenneCoteChamp = stat.getMoyenneCoteChamp();
+            this.cleanSheet = stat.getCleanSheet();
+            this.poste = "INCONNU";
+            this.categoriePoste = "INCONNU";
+        }
+    }
 
 
     /**

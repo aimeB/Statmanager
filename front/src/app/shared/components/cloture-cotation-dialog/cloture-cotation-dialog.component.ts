@@ -2,18 +2,17 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common'; // ✅ Import nécessaire
 
-
 @Component({
   selector: 'app-cloture-cotation-dialog',
   standalone: true, // ✅ Important si tu utilises des composants standalone
   imports: [CommonModule], // ✅ Import de CommonModule
   templateUrl: './cloture-cotation-dialog.component.html',
-  styleUrls: ['./cloture-cotation-dialog.component.scss']
+  styleUrls: ['./cloture-cotation-dialog.component.scss'],
 })
 export class ClotureCotationDialogComponent {
   constructor(
     public dialogRef: MatDialogRef<ClotureCotationDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { joueurs: any[] }
+    @Inject(MAT_DIALOG_DATA) public data: { joueurs: any[] },
   ) {}
 
   // ✅ Augmenter la note d'un joueur

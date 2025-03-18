@@ -8,9 +8,8 @@ describe('JoueurSelectionDialogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [JoueurSelectionDialogComponent]
-    })
-    .compileComponents();
+      imports: [JoueurSelectionDialogComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(JoueurSelectionDialogComponent);
     component = fixture.componentInstance;

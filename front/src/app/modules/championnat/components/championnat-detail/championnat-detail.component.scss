@@ -1,58 +1,58 @@
 .championnat-detail-container {
-    background: linear-gradient(120deg, #2c3e50, #4ca1af);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  h3 {
-    border-bottom: 2px solid white;
-    padding-bottom: 5px;
-  }
-  
-  ul {
-    list-style: none;
-    padding: 0;
-  }
-  
-  li {
-    padding: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  li:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-  
-  th, td {
-    padding: 10px;
-    text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  th {
-    background: rgba(255, 255, 255, 0.2);
-  }
-  
-  details {
-    margin-top: 10px;
-  }
-  
-  summary {
-    cursor: pointer;
-    font-weight: bold;
-  }
-  
-  summary:hover {
-    color: #f39c12;
-  }
-  
+  background: linear-gradient(120deg, #2c3e50, #4ca1af);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+h3 {
+  border-bottom: 2px solid white;
+  padding-bottom: 5px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+li:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th,
+td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+th {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+details {
+  margin-top: 10px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+summary:hover {
+  color: #f39c12;
+}

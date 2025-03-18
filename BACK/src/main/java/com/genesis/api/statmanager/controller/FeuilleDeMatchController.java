@@ -3,6 +3,7 @@ package com.genesis.api.statmanager.controller;
 import com.genesis.api.statmanager.dto.FeuilleDeMatchDTO;
 import com.genesis.api.statmanager.repository.FeuilleDeMatchRepository;
 import com.genesis.api.statmanager.service.FeuilleDeMatchService;
+import com.genesis.api.statmanager.service.RencontreService;
 import com.genesis.api.statmanager.service.impl.FeuilleDeMatchServiceImpl;
 import com.genesis.api.statmanager.service.impl.RencontreServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +25,9 @@ public class FeuilleDeMatchController {
 
 
         private final FeuilleDeMatchService feuilleDeMatchService;
+    private final RencontreService rencontreService;
 
-        // -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
         // 1) Récupère toutes les feuilles de match d’une rencontre
         // -------------------------------------------------------------------------
         @GetMapping("/rencontre/{rencontreId}")
@@ -46,5 +48,6 @@ public class FeuilleDeMatchController {
 
 
 
-    }
+
+}
 

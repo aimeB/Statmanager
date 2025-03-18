@@ -9,15 +9,15 @@ import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-menu',
-  standalone: true,  
+  standalone: true,
   imports: [
-    CommonModule,  
-    RouterModule,  
+    CommonModule,
+    RouterModule,
     MatMenuModule, // ✅ Nécessaire pour afficher <mat-menu>
     MatButtonModule, // ✅ Nécessaire pour les boutons Angular Material
-    MatIconModule // ✅ Nécessaire pour les icônes
+    MatIconModule, // ✅ Nécessaire pour les icônes
   ],
   templateUrl: './menu.component.html',
-  styleUrls: ['./menu.component.scss']
+  styleUrls: ['./menu.component.scss'],
 })
 export class MenuComponent {}

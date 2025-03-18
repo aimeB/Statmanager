@@ -86,17 +86,17 @@ public class FeuilleDeMatchServiceImpl implements FeuilleDeMatchService {
         }
 
         return FeuilleDeMatchDTO.builder()
-                .id(feuille.getFeuilleId())
+                .feuilleId(feuille.getFeuilleId())
                 .rid(feuille.getRencontre().getRid())
                 .jid(joueur.getJid())
                 .nom(joueur.getNom())
                 .poste(joueur.getPoste().name())
                 .buts(feuille.getButs())
                 .passes(feuille.getPasses())
-                .moyenneCote(feuille.getMoyenneCote())
+                .cote(feuille.getCote())
                 .minutesJouees(feuille.getMinutesJouees())
                 .titulaire(feuille.isTitulaire())
-                .aJoue(feuille.getAJoue())
+                .ajoue(feuille.isAjoue())
                 .build();
     }
 

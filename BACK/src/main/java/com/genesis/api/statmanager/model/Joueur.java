@@ -2,6 +2,7 @@ package com.genesis.api.statmanager.model;
 
 import com.genesis.api.statmanager.model.enumeration.Poste;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
 import java.util.Objects;
@@ -38,6 +39,31 @@ public abstract class Joueur {
 
     @Column(name = "point", nullable = false)
     private int point = 0; // ✅ Initialisé à 0
+
+
+
+
+
+    @Min(value = 0, message = "Les buts encaissés doivent être positifs.")
+    @Column(name = "but_encaisser", nullable = false)
+    private int butEncaisser;
+
+    @Min(value = 0, message = "Les arrêts doivent être positifs.")
+    @Column(name = "but_arreter", nullable = false)
+    private int butArreter;
+
+
+    @Column(name = "clean_sheet", nullable = false)
+    private int cleanSheet = 0;
+
+
+
+
+
+
+
+
+
 
     public Joueur(Long jid, String nom, Poste poste) {
         this.jid = jid;

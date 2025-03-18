@@ -1,118 +1,324 @@
-/* 🌍 Global Styles */
-.match-container {
+/* ✅ Conteneur principal */
+.detail-terrain-container {
+  width: 100vw;
+  min-height: 100vh; /* ✅ Corrige le dépassement */
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
-  background: linear-gradient(to right, #2c3e50, #34495e);
-  color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  max-width: 1200px;
-  margin: 0 auto;
+  background-color: #1b3d1a;
+  padding: 2vh 2vw;
 }
 
-/* 🎯 Scoreboard */
-.scoreboard {
+/* ✅ SCORE : Centré et bien visible */
+.score-container {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: #1f2d3d;
-  padding: 1rem;
-  border-radius: 12px;
-  width: 100%;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.team-score {
-  text-align: center;
-  flex: 1;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.score-input {
-  width: 60px;
-  padding: 0.5rem;
-  font-size: 1.4rem;
-  text-align: center;
-  border: 2px solid #f39c12;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #333;
-}
-
-/* ⚽ Terrain de jeu */
-.terrain-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 2rem;
-  width: 100%;
+  justify-content: center;
+  gap: 2vw;
+  background: #1b3d1a;
+  padding: 1.5vh;
+  border-radius: 1vw;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4);
+  margin-bottom: 2vh;
+  width: 90%;
   max-width: 800px;
-  background: url('/assets/football_field.png') no-repeat center center;
-  background-size: cover;
-  border-radius: 12px;
-  margin-top: 1rem;
 }
 
-mat-card {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 1rem;
-  border-radius: 10px;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.3s;
+/* ✅ Score en GRAND et bien centré */
+.score-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffd700;
+  padding: 1vh 2vw;
+  border-radius: 1vw;
 }
 
-mat-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+.score {
+  font-size: 4vw;
+  font-weight: bold;
+  color: black;
 }
 
-.goalkeeper {
-  background: #e74c3c;
+.score-separator {
+  font-size: 3.5vw;
+  font-weight: bold;
+  color: black;
+  margin: 0 1vw;
+}
+
+/* ✅ Alignement des équipes */
+.team {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+}
+
+.team-name {
+  font-size: 1.5vw;
+  font-weight: bold;
   color: white;
 }
 
-/* 🛋️ Liste des remplaçants */
-.remplacants {
-  background: #f39c12;
-  padding: 1rem;
-  border-radius: 12px;
-  width: 100%;
-  text-align: center;
-  margin-top: 2rem;
+/* ✅ Drapeaux des équipes */
+.team-flag {
+  width: 3.5vw;
+  height: auto;
 }
 
-.remplacants-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-
-.remplacants-list mat-card {
-  width: 120px;
-  padding: 10px;
-  font-size: 1rem;
-}
-
-/* 🏁 Clôture */
-.cloture {
-  text-align: center;
-  margin-top: 1.5rem;
-}
-
-button {
-  padding: 10px 15px;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 8px;
+/* ✅ Bouton "+1 But Adversaire" plus petit et aligné */
+.btn-mini {
+  background-color: transparent;
   border: none;
-  transition: background 0.3s, transform 0.2s;
+  font-size: 1.2vw;
+  cursor: pointer;
+  padding: 0.3vw;
 }
 
-button:hover {
-  transform: scale(1.05);
+/* ✅ TIMELINE : Compacte et bien alignée */
+.timeline-container {
+  width: 90%;
+  margin: 2vh auto;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5vh;
+  border-radius: 1vw;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 800px;
+}
+
+/* ✅ Titre de la timeline */
+.timeline-title {
+  color: white;
+  font-size: 2vw;
+  font-weight: bold;
+  margin-bottom: 1.5vh;
+}
+
+/* ✅ Événements alignés sans pousser le terrain */
+.timeline {
+  position: relative;
+  margin: 1vh auto;
+  padding-left: 2vw;
+  border-left: 3px solid #ffd700;
+}
+
+/* ✅ Élément de la timeline */
+.timeline-item {
+  display: flex;
+  align-items: center;
+  margin: 0.8vh 0;
+  font-size: 1.3vw;
+}
+
+/* ✅ Heure de l'événement */
+.timeline-time {
+  font-size: 1.5vw;
+  font-weight: bold;
+  color: #ffd700;
+  margin-right: 1vw;
+}
+
+/* ✅ Contenu de l'événement */
+.timeline-content {
+  display: flex;
+  align-items: center;
+  gap: 0.8vw;
+  color: white;
+}
+
+/* ✅ Icône (but, remplacement) */
+.timeline-icon {
+  font-size: 1.5vw;
+}
+
+/* ✅ Passeur (optionnel) */
+.timeline-passer {
+  font-size: 1.2vw;
+  color: lightgray;
+}
+
+/* ✅ TERRAIN : Bien centré et équilibré */
+.terrain-grid {
+  width: 95%;
+  max-height: 60vh; /* ✅ Limite la hauteur pour qu’il reste visible */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  overflow-y: auto; /* ✅ Active le scroll si nécessaire */
+  margin-top: 2vh;
+  gap: 2vh;
+}
+
+/* ✅ Ajout d’un scroll dans la liste des joueurs si nécessaire */
+.joueur-cote-container {
+  max-height: 60vh; /* 🔥 Permet d'afficher plus de joueurs */
+  overflow-y: auto; /* ✅ Active le scroll */
+  padding-right: 1vw;
+}
+
+
+
+/* ✅ Lignes des joueurs */
+.ligne {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  gap: 5vw;
+}
+
+/* ✅ Cartes des joueurs */
+.poste {
+  width: 12%;
+  padding: 1vh;
+  background-color: white;
+  border-radius: 1vw;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  font-size: 1vw;
+}
+
+/* ✅ Noms des joueurs */
+.poste h4 {
+  font-size: 1.1vw;
+  margin-bottom: 0.5vh;
+}
+
+
+/* ✅ Style spécifique pour la carte du gardien */
+.poste.gardien {
+  width: 15%; /* Augmente la taille par rapport aux autres */
+  padding: 1.5vh; /* Augmente l'espace intérieur */
+  border-radius: 1.5vw; /* Arrondi un peu plus grand */
+}
+
+/* ✅ Ajustement des boutons du gardien */
+.poste.gardien .actions {
+  display: flex;
+  flex-wrap: wrap; /* Permet un retour à la ligne des boutons si nécessaire */
+  justify-content: center;
+  gap: 1vw;
+}
+
+.poste.gardien .actions button {
+  width: 45%; /* Taille plus grande que les autres joueurs */
+  padding: 0.8vh;
+  font-size: 1vw;
+}
+
+
+
+
+
+
+
+
+
+.mat-dialog-container {
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 2vh;
+}
+
+
+
+/* ✅ Actions */
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 1vw;
+}
+
+.actions button {
+  width: 40%;
+  padding: 0.5vh;
+  font-size: 0.9vw;
+}
+
+
+.btn-repartition {
+  margin-top: 2vh;
+  margin-bottom: 2vh; /* ✅ Évite qu’il se colle en bas */
+  width: auto;
+  padding: 1vh 2vw;
+}
+
+
+
+
+
+
+
+
+
+
+
+/* ✅ RESPONSIVE pour tablettes */
+@media (max-width: 1024px) {
+  .score {
+    font-size: 5vw;
+  }
+  
+  .timeline-title {
+    font-size: 2.5vw;
+  }
+  
+  .timeline-time, .timeline-icon {
+    font-size: 2vw;
+  }
+  
+  .timeline-content {
+    font-size: 1.7vw;
+  }
+  
+  .poste {
+    width: 16%;
+  }
+
+  .actions button {
+    font-size: 1vw;
+  }
+}
+
+/* ✅ RESPONSIVE pour mobiles */
+@media (max-width: 768px) {
+  .score {
+    font-size: 6vw;
+  }
+
+  .score-separator {
+    font-size: 5vw;
+  }
+
+  .team-name {
+    font-size: 3vw;
+  }
+
+  .timeline-title {
+    font-size: 3vw;
+  }
+
+  .timeline-time, .timeline-icon {
+    font-size: 2.5vw;
+  }
+
+  .timeline-content {
+    font-size: 2vw;
+  }
+
+  .poste {
+    width: 22%;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 1vh;
+  }
+
+  .actions button {
+    width: 100%;
+    font-size: 1.2vw;
+  }
 }

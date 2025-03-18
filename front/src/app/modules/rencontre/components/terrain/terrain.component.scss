@@ -3,7 +3,7 @@
 /* ✅ Arrière-plan terrain de football */
 body {
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+  background: linear-gradient(to bottom, #4caf50, #2e7d32);
   color: #333;
   margin: 0;
   padding: 0;
@@ -35,11 +35,11 @@ body {
 }
 
 /* ✅ Défenseurs */
-.ligne.defenseurs {
+.ligne.defense {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  background: rgba(66, 133, 244, 0.2);
+  background: blue;
   padding: 10px;
   border-radius: 12px;
 }
@@ -70,7 +70,9 @@ mat-card.poste {
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   text-align: center;
   cursor: pointer;
   animation: fadeIn 0.5s ease-in-out;

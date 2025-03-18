@@ -8,9 +8,8 @@ describe('ClotureCotationDialogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ClotureCotationDialogComponent]
-    })
-    .compileComponents();
+      imports: [ClotureCotationDialogComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ClotureCotationDialogComponent);
     component = fixture.componentInstance;

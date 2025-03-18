@@ -19,7 +19,9 @@ public class RencontreDetailDTO {
     private String nomAdversaire;         // Nom de l'équipe adverse
     private int butAdversaire;            // Buts marqués par l'adversaire
     private String divisionAdversaire;       // Division de l'adversaire
-    private String hommeDuMatch;          // Joueur désigné homme du match
+    private Long hommeDuMatchId; // ✅ Stocke l'ID du joueur élu homme du match
+    private String hommeDuMatchNom; // ✅ Stocke le nom du joueur élu
+       // Joueur désigné homme du match
     private StatutRencontre statutRencontre; // Statut de la rencontre (ENCOURS, TERMINE, etc.)
     private List<StatistiquesRencontreDTO> statsJoueurs; // Liste des stats des joueurs pour ce match
 }

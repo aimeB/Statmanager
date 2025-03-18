@@ -15,7 +15,6 @@ import java.util.Optional;
 public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, Long> , FeuilleDeMatchRepositoryCustom {
 
 
-
     @Query("""
     SELECT
         f.feuilleId AS id,
@@ -25,9 +24,9 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
         CAST(f.joueur.poste AS string) AS poste, 
         f.buts AS buts,
         f.passes AS passes,
-        f.moyenneCote AS moyenneCote,
+        f.cote AS cote,
         f.minutesJouees AS minutesJouees,
-        f.aJoue AS aJoue,
+        f.ajoue AS ajoue,
         f.titulaire AS titulaire,
         f.butArreter AS butArreter,
         f.butEncaisser AS butEncaisser,
@@ -42,11 +41,10 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
     @Modifying
     @Query("""
     UPDATE FeuilleDeMatch f
-    SET f.passes = :passes
+    SET f.passes = f.passes + :passes
     WHERE f.feuilleId = :feuilleId
 """)
     void updatePasses(@Param("feuilleId") Long feuilleId, @Param("passes") int passes);
-
 
 
     @Modifying
@@ -55,40 +53,6 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
     VALUES (:feuilleId, :passeurJoueurId)
 """, nativeQuery = true)
     void addPasseurByIds(@Param("feuilleId") Long feuilleId, @Param("passeurJoueurId") Long passeurJoueurId);
-
-
-    @Query("SELECT f.joueurId FROM FeuilleDeMatch f WHERE f.feuilleId = :feuilleId")
-    Optional<Long> findJoueurIdByFeuilleId(@Param("feuilleId") Long feuilleId);
-
-
-    /**
-     * ✅ Récupère une feuille de match sous forme de projection sans instancier `Joueur`
-     */
-    @Query("""
-    SELECT
-        f.feuilleId AS id, f.rencontre.rid AS rid,
-        f.joueur.jid AS jid, f.joueur.nom AS nom, CAST(f.joueur.poste AS string) AS poste,
-        f.buts AS buts, f.passes AS passes, f.moyenneCote AS moyenneCote,
-        f.minutesJouees AS minutesJouees, f.aJoue AS aJoue, f.titulaire AS titulaire,
-        f.butArreter AS butArreter, f.butEncaisser AS butEncaisser,
-        COALESCE((SELECT GROUP_CONCAT(CAST(p.jid AS string)) FROM f.passeurs p), '') AS passeursIds,
-        COALESCE((SELECT GROUP_CONCAT(p.nom) FROM f.passeurs p), '') AS nomsPasseurs
-    FROM FeuilleDeMatch f
-    WHERE f.feuilleId = :idFeuilleMatch
-""")
-    Optional<FeuilleDeMatchProjection> findFeuilleDeMatchProjection(@Param("idFeuilleMatch") Long idFeuilleMatch);
-
-
-    @Query("""
-    SELECT
-        f.feuilleId AS id, f.rencontre.rid AS rid, f.joueurId AS joueurId,
-        f.buts AS buts, f.passes AS passes, f.moyenneCote AS moyenneCote, 
-        f.minutesJouees AS minutesJouees, f.aJoue AS aJoue, f.titulaire AS titulaire,
-        f.butArreter AS butArreter, f.butEncaisser AS butEncaisser
-    FROM FeuilleDeMatch f
-    WHERE f.rencontre.rid = :idRencontre
-""")
-    List<Object[]> findFeuillesDeMatchSansJoueur(@Param("idRencontre") Long idRencontre);
 
 
     @Modifying
@@ -103,23 +67,6 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
                             @Param("passes") int passes);
 
 
-
-    @Modifying
-    @Query("""
-    UPDATE FeuilleDeMatch f
-    SET f.buts = :buts, f.passes = :passes, f.minutesJouees = :minutesJouees, f.aJoue = :aJoue, f.titulaire = :titulaire
-    WHERE f.feuilleId = :feuilleId
-""")
-    void updateFeuilleStats2(
-            @Param("feuilleId") Long feuilleId,
-            @Param("buts") int buts,
-            @Param("passes") int passes,
-            @Param("minutesJouees") double minutesJouees,
-            @Param("aJoue") boolean aJoue,
-            @Param("titulaire") boolean titulaire
-    );
-
-
     @Query(value = "SELECT buts FROM feuille_de_match WHERE feuille_id = :feuilleId", nativeQuery = true)
     int getButsFromDatabase(@Param("feuilleId") Long feuilleId);
 
@@ -128,25 +75,48 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
     void clearCache();
 
 
+
+
+    @Query("""
+SELECT f.feuilleId AS feuilleId, 
+       j.jid AS jid, 
+       j.nom AS nom,
+       j.poste AS poste,
+       f.buts AS buts, 
+       f.passes AS passes, 
+       f.cote AS cote,
+       f.minutesJouees AS minutesJouees,
+       f.titulaire AS titulaire 
+FROM FeuilleDeMatch f
+JOIN f.joueur j 
+WHERE f.rencontre.rid = :rencontreId
+AND TYPE(j) <> Joueur
+ORDER BY j.nom
+""")
+    List<FeuilleDeMatchProjection> findByRencontreProjection(@Param("rencontreId") Long rencontreId);
+
+
+    @Modifying
+    @Query("""
+    UPDATE FeuilleDeMatch f 
+    SET f.cote = :cote
+    WHERE f.rencontre.rid = :idRencontre AND f.jid = :joueurId
+""")
+    void mettreAJourCoteJoueur(@Param("idRencontre") Long idRencontre,
+                               @Param("joueurId") Long joueurId,
+                               @Param("cote") double cote);
+
+
+
+
     @Query("""
     SELECT DISTINCT f FROM FeuilleDeMatch f
     JOIN FETCH f.joueur j
     WHERE f.rencontre.rid = :rencontreId
-    AND j.class != Joueur
+     AND TYPE(f.joueur) IN (Attaquant, Gardien, Defenseur, Milieu)
     ORDER BY j.nom
 """)
     List<FeuilleDeMatch> findByRencontre(@Param("rencontreId") Long rencontreId);
-
-
-    @Modifying
-    @Query("UPDATE FeuilleDeMatch f SET f.buts = f.buts + 1 WHERE f.feuilleId = :feuilleId")
-    void incrementButs(@Param("feuilleId") Long feuilleId);
-
-    @Modifying
-    @Query("UPDATE FeuilleDeMatch f SET f.passes = f.passes + 1 WHERE f.feuilleId = :feuilleId")
-    void incrementPasses(@Param("feuilleId") Long feuilleId);
-
-
 
 
     @Query("""
@@ -177,10 +147,17 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
         f.butArreter = :butArreter
     WHERE f.feuilleId = :feuilleId
 """)
-    void updateFeuilleGardienStats(@Param("feuilleId") Long feuilleId,
-                                   @Param("butEncaisser") int butEncaisser,
-                                   @Param("butArreter") int butArreter);
+    int updateFeuilleGardienStats(@Param("feuilleId") Long feuilleId,
+                                  @Param("butEncaisser") int butEncaisser,
+                                  @Param("butArreter") int butArreter);
 
+
+    @Query("SELECT f.feuilleId FROM FeuilleDeMatch f WHERE f.rencontre.rid = :idRencontre AND f.joueur.jid = :idJoueur")
+    Optional<Long> findFeuilleIdByRencontreAndJoueur(@Param("idRencontre") Long idRencontre, @Param("idJoueur") Long idJoueur);
+
+
+    @Query("SELECT f.passes FROM FeuilleDeMatch f WHERE f.feuilleId = :id")
+    Optional<Integer> findPassesById(@Param("id") Long id);
 
 
     @Modifying
@@ -188,7 +165,7 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
     UPDATE FeuilleDeMatch f
     SET f.buts = :buts, 
         f.passes = :passes, 
-        f.moyenneCote = :moyenneCote, 
+        f.cote = :cote, 
         f.minutesJouees = :minutesJouees, 
         f.butEncaisser = CASE WHEN :isGardien = true THEN :butEncaisser ELSE f.butEncaisser END, 
         f.butArreter = CASE WHEN :isGardien = true THEN :butArreter ELSE f.butArreter END
@@ -197,7 +174,7 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
     void majStatsFeuilleDeMatch(@Param("feuilleId") Long feuilleId,
                                 @Param("buts") int buts,
                                 @Param("passes") int passes,
-                                @Param("moyenneCote") double moyenneCote,
+                                @Param("cote") double cote,
                                 @Param("minutesJouees") double minutesJouees,
                                 @Param("isGardien") boolean isGardien,
                                 @Param("butEncaisser") int butEncaisser,
@@ -205,38 +182,26 @@ public interface FeuilleDeMatchRepository extends JpaRepository<FeuilleDeMatch, 
 
 
     @Query("""
-    SELECT b.nom AS buteur, p.nom AS passeur
-    FROM FeuilleDeMatch f
-    JOIN Joueur b ON f.joueurId = b.jid
-    LEFT JOIN f.passeurs p
-    WHERE f.rencontre.rid = :idRencontre
-    ORDER BY f.feuilleId ASC
-""")
-    List<Object[]> findHistoriqueButs(@Param("idRencontre") Long idRencontre);
-
-
-
-
-
-
-    @Query("""
     SELECT f.feuilleId AS id,
-           f.joueurId AS jid,
+           f.rencontre.rid AS rid,
+           f.jid AS jid,
+           f.joueur.nom AS nom,
+           CAST(f.joueur.poste AS string) AS poste, 
            f.buts AS buts,
            f.passes AS passes,
+           f.cote AS cote,
            f.minutesJouees AS minutesJouees,
-           j.poste AS poste,
-           f.moyenneCote AS moyenneCote,
+           f.ajoue AS ajoue,  
+           f.titulaire AS titulaire,
+           f.butArreter AS butArreter,
            f.butEncaisser AS butEncaisser,
-           f.butArreter AS butArreter
+           COALESCE((SELECT GROUP_CONCAT(CAST(p.jid AS string)) FROM f.passeurs p), '') AS passeursIds,
+           COALESCE((SELECT GROUP_CONCAT(p.nom) FROM f.passeurs p), '') AS nomsPasseurs
     FROM FeuilleDeMatch f
-    JOIN Joueur j ON j.jid = f.joueurId
+    JOIN Joueur j ON j.jid = f.jid
     WHERE f.rencontre.rid = :rencontreId
 """)
     List<FeuilleDeMatchProjection> findAllByRencontreId(@Param("rencontreId") Long rencontreId);
 
 
 }
-
-
-

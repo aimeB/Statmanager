@@ -1,91 +1,129 @@
-<div class="match-container" *ngIf="terrain">
+<!-- ✅ Conteneur principal -->
+<div class="detail-terrain-container" *ngIf="terrain && terrain.terrainJoueurs">
+
+
+
+
+  <!-- ✅ Score affiché en GRAND au centre -->
+<div class="score-container">
+  <div class="team">
+    <img src="assets/france.png" alt="Équipe Locale" class="team-flag">
+    <span class="team-name">HERSTAL FC</span>
+  </div>
+
+  <div class="score-box">
+    <span class="score">{{ terrain.butEquipe }}</span>
+    <span class="score-separator"> - </span>
+    <span class="score">{{ terrain.butAdversaire }}</span>
+  </div>
+
+  <div class="team">
+    <span class="team-name">{{ terrain.nomAdversaire }}</span>
+    <img src="assets/adversaire.png" alt="Adversaire" class="team-flag">
+    <button class="btn-mini" (click)="mettreAJourButAdversaire(terrain.butAdversaire + 1)">
+      ⚽
+    </button>
+  </div>
+</div>
+
+<!-- ✅ Historique du match bien aligné en bas -->
+<div class="timeline-container">
+  <h3 class="timeline-title">📜 Match Events</h3>
+
+  <div class="timeline">
+    <div *ngFor="let evenement of butsMarques" class="timeline-item">
+      <div class="timeline-time">{{ evenement.minute }}'</div>
+      <div class="timeline-content">
+        <strong>{{ evenement.nomJoueur }}</strong>
+        <span class="timeline-icon">{{ evenement.typeEvenement === 'BUT' ? '⚽' : evenement.typeEvenement === 'ENTRÉE' ? '🟩➡️' : '🟥⬅️' }}</span>
+        <span *ngIf="evenement.nomPasseur" class="timeline-passer">🎯 {{ evenement.nomPasseur }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+  <!-- ✅ Sélecteur de formation -->
+  <div class="formation-selection">
+    <mat-form-field appearance="outline">
+      <mat-label>Formation</mat-label>
+      <mat-select [(value)]="formationActive" (selectionChange)="changerFormation($event)">
+        <mat-option *ngFor="let formation of getFormationsDisponibles()" [value]="formation">
+          {{ formation }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- ✅ TERRAIN DE JEU -->
+  <div class="terrain-grid">
     
-    <!-- ✅ Scoreboard -->
-    <div class="scoreboard">
-        <div class="team-score local">
-            <h2>{{ terrain.nomEquipe }}</h2>
-            <p class="score">{{ terrain.butEquipe }}</p>
+    <!-- 🎯 Gardien -->
+    <div class="ligne gardien">
+      <mat-card class="poste gardien">
+        <h4>GB</h4>
+        <p>{{ terrainJoueurs['GB']?.nom || '❌ Aucun joueur' }}</p>
+        <div class="actions">
+          <button mat-button color="primary" (click)="ouvrirSelectionJoueur('GB')">?</button>
+          <button mat-button color="warn" *ngIf="terrainJoueurs['GB']" (click)="ouvrirSelectionRemplacement(terrainJoueurs['GB']!)">🔄</button>
+          <button mat-button color="accent" (click)="ajouterArretGardien()">🧤</button>
+          <button mat-button color="primary" (click)="envoyerStatsGardien()">📡</button> 
         </div>
-        <div class="vs">VS</div>
-
-        <div class="team-score adversaire">
-            <h2>{{ terrain.nomAdversaire }}</h2>
-            <input type="number" class="score-input" [(ngModel)]="butAdversaire" (change)="mettreAJourButAdversaire(butAdversaire)" min="0">
-        </div>
+      </mat-card>
     </div>
 
-    <!-- 📜 Historique des événements -->
-    <div class="historique-container">
-        <h3>📜 Historique du match</h3>
-        <ul>
-            <li *ngFor="let evenement of butsMarques">
-                <span *ngIf="evenement.typeEvenement === 'BUT'">
-                    ⚽ {{ evenement.nomJoueur }} a marqué à la {{ evenement.minute }}'
-                    <span *ngIf="evenement.nomPasseur"> (🎯 Passe de {{ evenement.nomPasseur }})</span>
-                </span>
-                <span *ngIf="evenement.typeEvenement === 'REMPLACEMENT'">
-                    🔄 {{ evenement.nomJoueur }} est entré en jeu à la {{ evenement.minute }}'
-                </span>
-            </li>
-        </ul>
+    <!-- 🎯 Défense -->
+    <div class="ligne defense">
+      <mat-card *ngFor="let posteKey of postesFormation.defense" class="poste defenseur">
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <div class="actions">
+          <button mat-button color="primary" (click)="ouvrirSelectionJoueur(posteKey)">?</button>
+          <button mat-button color="warn" *ngIf="terrainJoueurs[posteKey]" (click)="ouvrirSelectionRemplacement(terrainJoueurs[posteKey]!)">🔄</button>
+          <button mat-button color="accent" *ngIf="terrainJoueurs[posteKey] !== null" (click)="incrementerBut($event, terrainJoueurs[posteKey]!)">⚽</button> 
+
+        </div>
+      </mat-card>
     </div>
 
-    <!-- ✅ Terrain -->
-    <div class="terrain-grid">
-        <div class="ligne gardien">
-            <mat-card class="goalkeeper" *ngIf="terrain.terrainJoueurs['GB'] as joueur" (click)="incrementerBut(joueur)">
-                <h4>🥅 Gardien</h4>
-                <p>{{ joueur.nom || '❌ Aucun joueur' }}</p>
-                <p>🧤 {{ joueur.butArreter || 0 }} arrêts</p>
-                <button class="btn-add-save" (click)="ajouterArretGardien()">+ Ajouter un arrêt</button>
-                <button class="btn-add-goal">+ But</button>
-            </mat-card>
+    <!-- 🎯 Milieu de terrain -->
+    <div class="ligne milieux">
+      <mat-card *ngFor="let posteKey of postesFormation.milieu" class="poste milieux">
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <div class="actions">
+          <button mat-button color="primary" (click)="ouvrirSelectionJoueur(posteKey)">?</button>
+          <button mat-button color="warn" *ngIf="terrainJoueurs[posteKey]" (click)="ouvrirSelectionRemplacement(terrainJoueurs[posteKey]!)">🔄</button>
+          <button mat-button color="accent" *ngIf="terrainJoueurs[posteKey] !== null" (click)="incrementerBut($event, terrainJoueurs[posteKey]!)">⚽</button> 
         </div>
-
-        <div class="ligne defenseurs">
-            <ng-container *ngFor="let poste of ['DD', 'DC_GAUCHE', 'DC_DROIT', 'DG']">
-                <mat-card *ngIf="terrain.terrainJoueurs[poste] as joueur" (click)="incrementerBut(joueur)">
-                    <h4>{{ poste }}</h4>
-                    <p>{{ joueur.nom }}</p>
-                    <button class="btn-add-goal">+ But</button>
-                </mat-card>
-            </ng-container>
-        </div>
-
-        <div class="ligne milieux">
-            <ng-container *ngFor="let poste of ['MDF', 'MO', 'MR']">
-                <mat-card *ngIf="terrain.terrainJoueurs[poste] as joueur" (click)="incrementerBut(joueur)">
-                    <h4>{{ poste }}</h4>
-                    <p>{{ joueur.nom }}</p>
-                    <button class="btn-add-goal">+ But</button>
-                </mat-card>
-            </ng-container>
-        </div>
-
-        <div class="ligne attaquants">
-            <ng-container *ngFor="let poste of ['AIG', 'AC', 'AID']">
-                <mat-card *ngIf="terrain.terrainJoueurs[poste] as joueur" (click)="incrementerBut(joueur)">
-                    <h4>{{ poste }}</h4>
-                    <p>{{ joueur.nom }}</p>
-                    <button class="btn-add-goal">+ But</button>
-                </mat-card>
-            </ng-container>
-        </div>
+      </mat-card>
     </div>
 
-    <!-- 🛋️ Liste des remplaçants -->
-    <div class="remplacants">
-        <h3>🛋️ Remplaçants</h3>
-        <div class="remplacants-list">
-            <mat-card *ngFor="let remplacant of terrain.remplacants">
-                <p>{{ remplacant.nom }} - {{ remplacant.poste }}</p>
-            </mat-card>
+    <!-- 🎯 Attaque -->
+    <div class="ligne attaquants">
+      <mat-card *ngFor="let posteKey of postesFormation.attaque" class="poste attaquant">
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <div class="actions">
+          <button mat-button color="primary" (click)="ouvrirSelectionJoueur(posteKey)">?</button>
+          <button mat-button color="warn" *ngIf="terrainJoueurs[posteKey]" (click)="ouvrirSelectionRemplacement(terrainJoueurs[posteKey]!)">🔄</button>
+          <button mat-button color="accent" *ngIf="terrainJoueurs[posteKey] !== null" (click)="incrementerBut($event, terrainJoueurs[posteKey]!)">⚽</button> 
         </div>
+      </mat-card>
     </div>
 
-    <!-- 🏁 Clôture -->
-    <div class="cloture">
-        <button mat-raised-button color="accent" (click)="ouvrirPopupCotes()">🏁 Clôturer la rencontre</button>
-    </div>
+  </div> <!-- ✅ Fin du terrain-grid -->
 
+  <!-- ✅ Bouton Répartition automatique -->
+  <button class="btn-repartition" (click)="disposerJoueursNaturellement()">🔄 Répartir les joueurs automatiquement</button>
+
+</div>
+<!-- ✅ Bouton pour Clôturer la Rencontre -->
+<div class="cloture-container">
+  <button class="btn-cloture" (click)="ouvrirPopupCotes()">🏆 Clôturer le match</button>
 </div>

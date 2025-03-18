@@ -1,5 +1,4 @@
 export interface HistoriqueButDTO {
-    buteur: string;
-    passeur?: string;
-  }
-  
+  buteur: string;
+  passeur?: string;
+}

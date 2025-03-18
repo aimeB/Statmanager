@@ -10,5 +10,6 @@ public interface JoueurProjection {
     int getTotalPasses();
     double getTotalMinutesJouees();
     double getTotalMoyenneCote();
-    Class<?> getTypeJoueur();  // ⚠️ Retourne `Class<?>`
+    String getTypeJoueur();
+
 }

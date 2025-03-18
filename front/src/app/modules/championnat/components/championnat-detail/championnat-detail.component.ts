@@ -7,25 +7,24 @@ import { StatistiquesRencontreDTO } from '../../../statistiques/models/statistiq
 import { NgIf, NgFor } from '@angular/common';
 import { Router } from '@angular/router';
 
-
-
-
 @Component({
   selector: 'app-championnat-detail',
   standalone: true,
-  imports: [CommonModule, NgIf, NgFor], 
-  templateUrl: './championnat-detail.component.html', 
-  styleUrls: ['./championnat-detail.component.scss']
+  imports: [CommonModule, NgIf, NgFor],
+  templateUrl: './championnat-detail.component.html',
+  styleUrls: ['./championnat-detail.component.scss'],
 })
 export class ChampionnatDetailComponent implements OnChanges {
-
   @Input() idChampionnat!: number;
   championnatDetail?: ChampionnatDetailWithRencontresDTO;
   statistiquesChampionnat: StatistiquesChampionnatDTO[] = [];
   selectedRencontreId?: number;
   statistiquesRencontre: StatistiquesRencontreDTO[] = [];
 
-  constructor(private championnatService: ChampionnatService,    private router: Router,) {}
+  constructor(
+    private championnatService: ChampionnatService,
+    private router: Router,
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['idChampionnat'] && this.idChampionnat) {
@@ -41,9 +40,9 @@ export class ChampionnatDetailComponent implements OnChanges {
     this.championnatService.getChampionnatWithRencontres(this.idChampionnat).subscribe({
       next: (data) => {
         this.championnatDetail = data;
-        console.log("✅ Championnat chargé :", data);
+        console.log('✅ Championnat chargé :', data);
       },
-      error: (err) => console.error('❌ Erreur lors du chargement des détails du championnat', err)
+      error: (err) => console.error('❌ Erreur lors du chargement des détails du championnat', err),
     });
   }
 
@@ -54,9 +53,10 @@ export class ChampionnatDetailComponent implements OnChanges {
     this.championnatService.getStatistiquesChampionnat(this.idChampionnat).subscribe({
       next: (data) => {
         this.statistiquesChampionnat = data;
-        console.log("✅ Statistiques du championnat chargées :", data);
+        console.log('✅ Statistiques du championnat chargées :', data);
       },
-      error: (err) => console.error('❌ Erreur lors du chargement des statistiques du championnat', err)
+      error: (err) =>
+        console.error('❌ Erreur lors du chargement des statistiques du championnat', err),
     });
   }
 
@@ -67,7 +67,8 @@ export class ChampionnatDetailComponent implements OnChanges {
         this.statistiquesRencontre = data;
         console.log(`✅ Statistiques de la rencontre ${idRencontre} chargées :`, data);
       },
-      error: (err) => console.error('❌ Erreur lors du chargement des statistiques de la rencontre', err)
+      error: (err) =>
+        console.error('❌ Erreur lors du chargement des statistiques de la rencontre', err),
     });
   }
 
@@ -86,5 +87,4 @@ export class ChampionnatDetailComponent implements OnChanges {
     if (!this.idChampionnat) return;
     this.router.navigate([`/championnats/${this.idChampionnat}/rencontres/selection`]);
   }
-
 }

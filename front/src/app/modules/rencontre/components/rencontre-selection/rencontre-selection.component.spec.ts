@@ -8,9 +8,8 @@ describe('RencontreSelectionComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RencontreSelectionComponent]
-    })
-    .compileComponents();
+      imports: [RencontreSelectionComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(RencontreSelectionComponent);
     component = fixture.componentInstance;

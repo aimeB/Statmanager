@@ -6,10 +6,10 @@
  * - PROMOTION : L'équipe est en position de promotion.
  */
 export enum Statut {
-    ENCOURS = "Championnat en cours",
-    RELEGATION = "Relégation en cours",
-    MAINTIEN = "Maintien assuré",
-    PROMOTION = "Promotion en cours"
+  ENCOURS = 'Championnat en cours',
+  RELEGATION = 'Relégation en cours',
+  MAINTIEN = 'Maintien assuré',
+  PROMOTION = 'Promotion en cours',
 }
 
 /**
@@ -18,7 +18,7 @@ export enum Statut {
  * @returns `true` si le statut est MAINTIEN ou PROMOTION, `false` sinon.
  */
 export function isPositive(statut: Statut): boolean {
-    return statut === Statut.PROMOTION || statut === Statut.MAINTIEN;
+  return statut === Statut.PROMOTION || statut === Statut.MAINTIEN;
 }
 
 /**
@@ -27,5 +27,5 @@ export function isPositive(statut: Statut): boolean {
  * @returns `true` si le statut est RELEGATION, `false` sinon.
  */
 export function isNegative(statut: Statut): boolean {
-    return statut === Statut.RELEGATION;
+  return statut === Statut.RELEGATION;
 }

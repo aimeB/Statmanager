@@ -1,74 +1,126 @@
-<div class="terrain-container" *ngIf="terrain">
+<!-- ✅ Vérification si le terrain est bien chargé -->
+<div class="terrain-container" *ngIf="terrain && terrainJoueurs">
   <h2 class="title">🏆 Terrain de Jeu</h2>
 
-  <!-- 🎯 Terrain sous forme de grille avec design football -->
+  ✅ Sélecteur de Formation
+  <div class="formation-selection">
+    <mat-form-field appearance="outline">
+      <mat-label>Formation</mat-label>
+      <mat-select [(value)]="formationActive" (selectionChange)="changerFormation($event)">
+        <mat-option *ngFor="let formation of getFormationsDisponibles()" [value]="formation">
+          {{ formation }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- ✅ Terrain avec structure FOOT réaliste -->
   <div class="terrain-grid">
-    <!-- Gardien -->
+    <!-- 🎯 GARDIEN (Toujours seul en haut) -->
     <div class="ligne gardien">
-      <mat-card class="poste" (click)="ouvrirSelectionJoueur(postesFixes[0].key)">
-        <h4>{{ postesFixes[0].label }}</h4>
-        <p>{{ postesFixes[0].joueur?.nom || '❌ Aucun joueur' }}</p>
-        <button mat-button color="warn" (click)="reinitialiserPoste(postesFixes[0]); $event.stopPropagation()">Réinitialiser</button>
+      <mat-card class="poste gardien" (click)="ouvrirSelectionJoueur('GB')">
+        <h4>GB</h4>
+        <p>{{ terrainJoueurs['GB']?.nom || '❌ Aucun joueur' }}</p>
+        <button
+          mat-button
+          color="warn"
+          *ngIf="terrainJoueurs['GB']"
+          (click)="reinitialiserPoste('GB'); $event.stopPropagation()"
+        >
+          Réinitialiser
+        </button>
       </mat-card>
     </div>
 
-  
-    <!-- Défenseurs -->
-<div class="ligne defenseurs">
-  <mat-card class="poste" *ngFor="let poste of postesFixes.slice(1, 5); trackBy: trackByPoste" 
-            (click)="ouvrirSelectionJoueur(poste.key)">
-    <h4>{{ poste.label }}</h4>
-    <p>{{ poste.joueur?.nom || '❌ Aucun joueur' }}</p>
-    <button mat-button color="warn" (click)="reinitialiserPoste(poste); $event.stopPropagation()">Réinitialiser</button>
-  </mat-card>
-</div>
-
-<!-- Milieux de terrain -->
-<div class="ligne milieux">
-  <mat-card class="poste" *ngFor="let poste of postesFixes.slice(5, 8); trackBy: trackByPoste" 
-            (click)="ouvrirSelectionJoueur(poste.key)">
-    <h4>{{ poste.label }}</h4>
-    <p>{{ poste.joueur?.nom || '❌ Aucun joueur' }}</p>
-    <button mat-button color="warn" (click)="reinitialiserPoste(poste); $event.stopPropagation()">Réinitialiser</button>
-  </mat-card>
-</div>
-
-<!-- Attaquants -->
-<div class="ligne attaquants">
-  <mat-card class="poste" *ngFor="let poste of postesFixes.slice(8, 11); trackBy: trackByPoste" 
-            (click)="ouvrirSelectionJoueur(poste.key)">
-    <h4>{{ poste.label }}</h4>
-    <p>{{ poste.joueur?.nom || '❌ Aucun joueur' }}</p>
-    <button mat-button color="warn" (click)="reinitialiserPoste(poste); $event.stopPropagation()">Réinitialiser</button>
-  </mat-card>
-</div>
-
-
-  <!-- 📋 Liste des joueurs disponibles -->
-  <div class="joueurs-disponibles">
-    <h3>📋 Joueurs disponibles</h3>
-    <mat-chip-list>
-      <mat-chip
-        *ngFor="let joueur of joueursDisponibles; trackBy: trackByJoueur"
-        (click)="selectionnerJoueur(joueur)"
-        [class.selected-chip]="joueurSelectionne?.id === joueur.id"
+    <!-- 🎯 DÉFENSE -->
+    <div class="ligne defense">
+      <mat-card
+        *ngFor="let posteKey of getPostesFormation().defense"
+        class="poste defenseur"
+        (click)="ouvrirSelectionJoueur(posteKey)"
       >
-        {{ joueur.nom }}
-      </mat-chip>
-    </mat-chip-list>
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <button
+          mat-button
+          color="warn"
+          *ngIf="terrainJoueurs[posteKey]"
+          (click)="reinitialiserPoste(posteKey); $event.stopPropagation()"
+        >
+          Réinitialiser
+        </button>
+      </mat-card>
+    </div>
+
+    <!-- 🎯 MILIEU DE TERRAIN -->
+    <div class="ligne milieux">
+      <mat-card
+        *ngFor="let posteKey of getPostesFormation().milieu"
+        class="poste milieux"
+        (click)="ouvrirSelectionJoueur(posteKey)"
+      >
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <button
+          mat-button
+          color="warn"
+          *ngIf="terrainJoueurs[posteKey]"
+          (click)="reinitialiserPoste(posteKey); $event.stopPropagation()"
+        >
+          Réinitialiser
+        </button>
+      </mat-card>
+    </div>
+
+    <!-- 🎯 ATTAQUE -->
+    <div class="ligne attaquants">
+      <mat-card
+        *ngFor="let posteKey of getPostesFormation().attaque"
+        class="poste attaquant"
+        (click)="ouvrirSelectionJoueur(posteKey)"
+      >
+        <h4>{{ posteKey }}</h4>
+        <p>{{ terrainJoueurs[posteKey]?.nom || '❌ Aucun joueur' }}</p>
+        <button
+          mat-button
+          color="warn"
+          *ngIf="terrainJoueurs[posteKey]"
+          (click)="reinitialiserPoste(posteKey); $event.stopPropagation()"
+        >
+          Réinitialiser
+        </button>
+      </mat-card>
+    </div>
   </div>
 
-  <!-- ✅ Validation des placements -->
+  <!-- 📋 Liste des Joueurs Disponibles -->
+  <div class="joueurs-disponibles">
+    <h3>📋 Joueurs Disponibles</h3>
+    <div class="joueurs-list">
+      <mat-chip
+        *ngFor="let joueur of joueursDisponibles; trackBy: trackByJoueur"
+        class="joueur-chip"
+      >
+        {{ joueur.nom }} ({{ joueur.poste }})
+      </mat-chip>
+    </div>
+  </div>
+  <!-- ✅ Validation de la formation -->
   <div class="actions">
-    <button mat-fab color="primary" class="validate-button" 
-            (click)="validerPlacement()" [disabled]="!estTerrainComplet()">
+    <button
+      mat-fab
+      color="primary"
+      class="validate-button"
+      (click)="validerTerrain()"
+      [disabled]="!estTerrainComplet()"
+    >
       ✅ Lancer la Partie
     </button>
   </div>
-</div>
 
-<!-- ❌ Terrain non chargé -->
-<div *ngIf="!terrain" class="terrain-empty">
-  <h2>❌ Aucun terrain chargé</h2>
-  <p>Veuillez d'abord créer une rencontre pour générer un terrain.</p>
+  <!-- ❌ Terrain non chargé -->
+  <div *ngIf="!terrain || !terrainJoueurs" class="terrain-empty">
+    <h2>❌ Aucun terrain chargé</h2>
+    <p>Veuillez d'abord créer une rencontre pour générer un terrain.</p>
+  </div>
 </div>

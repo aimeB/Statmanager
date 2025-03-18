@@ -8,7 +8,7 @@ import { StatTopJoueurDTO } from '../../../joueur/models/joueur.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './stat-top-joueur.component.html',
-  styleUrls: ['./stat-top-joueur.component.scss']
+  styleUrls: ['./stat-top-joueur.component.scss'],
 })
 export class StatTopJoueurComponent implements OnInit {
   topJoueurs!: StatTopJoueurDTO;
@@ -22,7 +22,7 @@ export class StatTopJoueurComponent implements OnInit {
   chargerMeilleursJoueurs(): void {
     this.statistiqueService.getMeilleursJoueurs().subscribe({
       next: (data) => (this.topJoueurs = data),
-      error: (err) => console.error('❌ Erreur lors du chargement des meilleurs joueurs', err)
+      error: (err) => console.error('❌ Erreur lors du chargement des meilleurs joueurs', err),
     });
   }
 }

@@ -28,19 +28,4 @@ public class StatistiqueManager {
 
 
 
-        public int calculerScoreClassement(FeuilleDeMatch feuille, double coteMoyenne, int cleanSheets) {
-            Joueur joueur = feuille.getJoueur();
-            boolean isGardien = joueur instanceof Gardien;
-
-            int pointsButsArreter = isGardien ? ((Gardien) joueur).getButArreter() * 5 : 0;
-            int pointsButsEncaisser = isGardien ? -((Gardien) joueur).getButEncaisser() * 3 : 0;
-            int pointsButs = feuille.getButs() * 5;
-            int pointsPasses = feuille.getPasses() * 3;
-            int pointsMinutes = (int) (feuille.getMinutesJouees() / 90) * 1;
-            int pointsCote = (int) (coteMoyenne * 10);
-            int pointsCleanSheets = cleanSheets * 7;
-
-            return pointsButs + pointsPasses + pointsMinutes + pointsCote + pointsCleanSheets + pointsButsArreter + pointsButsEncaisser;
-        }
-
 }

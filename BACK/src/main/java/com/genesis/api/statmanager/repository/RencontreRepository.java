@@ -6,6 +6,7 @@ import com.genesis.api.statmanager.model.Rencontre;
 import com.genesis.api.statmanager.model.Championnat;
 import com.genesis.api.statmanager.model.enumeration.StatutRencontre;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,40 +22,36 @@ public interface RencontreRepository extends JpaRepository<Rencontre, Long> {
 
 
 
-    @Query("""
-    SELECT new com.genesis.api.statmanager.dto.rencontre.RencontreDTO(
-        r.rid, r.championnat.idChamp,
-        CAST(COALESCE(SUM(f.buts), 0) AS int),
-        r.nomAdversaire, r.butAdversaire, r.divisionAdversaire,
-        COALESCE(h.nom, 'Aucun'), r.statutRencontre
-    )
-    FROM Rencontre r
-    LEFT JOIN r.feuilleDeMatchs f
-    LEFT JOIN r.hommeDuMatch h
-    WHERE r.rid = :idRencontre
-    GROUP BY r.rid, r.championnat.idChamp, r.nomAdversaire, r.butAdversaire, 
-             r.divisionAdversaire, h.nom, r.statutRencontre
-""")
-    Optional<RencontreDTO> findRencontreDTOById(@Param("idRencontre") Long idRencontre);
-
 
 
 
     @Query("""
-    SELECT new com.genesis.api.statmanager.dto.rencontre.RencontreDTO(
-        r.rid,
-        r.championnat.idChamp,
-        (SELECT COALESCE(SUM(f.buts), 0) FROM FeuilleDeMatch f WHERE f.rencontre.rid = r.rid), 
-        r.nomAdversaire,
-        r.butAdversaire,
-        r.divisionAdversaire,
-        (CASE WHEN r.hommeDuMatch IS NOT NULL THEN r.hommeDuMatch.nom ELSE 'Aucun' END),
-        r.statutRencontre
-    )
-    FROM Rencontre r 
-    WHERE r.championnat.idChamp = :idChampionnat
+SELECT new com.genesis.api.statmanager.dto.rencontre.RencontreDTO(
+    r.rid,
+    r.championnat.idChamp,
+    CAST((SELECT COALESCE(SUM(f.buts), 0) FROM FeuilleDeMatch f WHERE f.rencontre.rid = r.rid) AS int), 
+    r.nomAdversaire,
+    r.butAdversaire,
+    r.divisionAdversaire,
+    r.hommeDuMatch.jid, 
+    r.hommeDuMatch.nom,
+    r.statutRencontre
+)
+FROM Rencontre r 
+WHERE r.championnat.idChamp = :idChampionnat
 """)
+
     List<RencontreDTO> findRencontresByChampionnat(@Param("idChampionnat") Long idChampionnat);
+
+
+    @Modifying
+    @Query(value = """
+    UPDATE rencontre 
+    SET homme_du_match_id = :joueurId
+    WHERE rid = :rencontreId
+""", nativeQuery = true)
+    void updateHommeDuMatch(@Param("rencontreId") Long rencontreId, @Param("joueurId") Long joueurId);
+
 
 
 
@@ -65,12 +62,6 @@ public interface RencontreRepository extends JpaRepository<Rencontre, Long> {
 
 
 
-
-    /**
-     * ✅ Récupère la dernière rencontre terminée d'un championnat.
-     */
-    @Query("SELECT r FROM Rencontre r WHERE r.championnat.idChamp = :idChampionnat AND r.statutRencontre = com.genesis.api.statmanager.model.enumeration.StatutRencontre.TERMINE ORDER BY r.rid DESC")
-    Optional<Rencontre> findDerniereRencontreJouee(@Param("idChampionnat") Long idChampionnat);
 
 
     @Query("""
@@ -90,6 +81,8 @@ public interface RencontreRepository extends JpaRepository<Rencontre, Long> {
     @Query("SELECT r FROM Rencontre r WHERE r.championnat.idChamp = :idChampionnat")
     List<Rencontre> findAllRencontresByChampionnat(@Param("idChampionnat") Long idChampionnat);
 
+    @Query("SELECT r FROM Rencontre r WHERE r.championnat.idChamp = :idChampionnat AND r.statutRencontre = 'TERMINE' ORDER BY r.rid DESC LIMIT 1")
+    Optional<Rencontre> findDerniereRencontreJouee(@Param("idChampionnat") Long idChampionnat);
 
 
     /**
@@ -108,6 +101,19 @@ public interface RencontreRepository extends JpaRepository<Rencontre, Long> {
     WHERE r.rid = :id AND TYPE(j) IN (Attaquant, Gardien, Defenseur, Milieu)
 """)
     Optional<Rencontre> findByIdWithJoueurs(@Param("id") Long id);
+
+
+
+
+
+    @Query("SELECT COUNT(r) FROM Rencontre r WHERE r.championnat.idChamp = :idChampionnat AND r.statutRencontre = 'TERMINE'")
+    long countRencontresTerminees(@Param("idChampionnat") Long idChampionnat);
+
+
+
+
+
+
 
 
 

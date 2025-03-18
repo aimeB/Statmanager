@@ -28,6 +28,10 @@ public class StatChampionnat {
     private int passesChamp = 0; // ✅ Nombre de passes décisives
     private double minutesJoueesChamp = 0.0; // ✅ Temps de jeu cumulé
     private double moyenneCoteChamp = 5.0; // ✅ Moyenne de la cote du joueur
+    private int butArreterChamp;
+    private int butEncaisserChamp;
+
+
     @Column(name = "clean_sheet", nullable = false)
     private int cleanSheet = 0; // ✅ Nombre de clean sheets pour le joueur dans le championnat
 
@@ -43,4 +47,23 @@ public class StatChampionnat {
         this.minutesJoueesChamp = minutesJoueesChamp;
         this.moyenneCoteChamp = moyenneCoteChamp;
     }
+
+
+    public StatChampionnat(Long id, Long joueurId, Championnat championnat, int butsChamp, int passesChamp,
+                           double minutesJoueesChamp, double moyenneCoteChamp, int butArreter, int butEncaisser, int cleanSheet) {
+        this.id = id;
+        this.joueurId = joueurId;
+        this.championnat = championnat;
+        this.butsChamp = butsChamp;
+        this.passesChamp = passesChamp;
+        this.minutesJoueesChamp = minutesJoueesChamp;
+        this.moyenneCoteChamp = moyenneCoteChamp;
+        this.butArreterChamp = butArreter;
+        this.butEncaisserChamp = butEncaisser;
+        this.cleanSheet = cleanSheet; // ✅ Maintenant c'est un int
+    }
+
+
+
+
 }

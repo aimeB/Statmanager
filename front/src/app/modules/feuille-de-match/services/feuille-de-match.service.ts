@@ -4,14 +4,8 @@ import { Observable } from 'rxjs';
 import { FeuilleDeMatchDTO } from '../models/feuille-de-match.model';
 import { environment } from '../../../../environments/environment';
 
-
-
-
-
-
-
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FeuilleDeMatchService {
   private apiUrl = `${environment.apiBaseUrl}/feuille-de-match`; // ✅ Endpoint correct
@@ -25,9 +19,7 @@ export class FeuilleDeMatchService {
    */
   modifierStatistiquesJoueur(statDTO: FeuilleDeMatchDTO): Observable<any> {
     const url = `${this.apiUrl}/${statDTO.rid}/modifier-statistiques`;
-  
-    return this.http.put<any>(url, statDTO, { responseType: 'json' }); // ✅ Assure que `idPasseur` est inclus
-}
 
-  
+    return this.http.put<any>(url, statDTO, { responseType: 'json' }); // ✅ Assure que `idPasseur` est inclus
+  }
 }

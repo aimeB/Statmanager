@@ -1,5 +1,5 @@
 <div *ngIf="championnatDetail" class="championnat-detail-container">
-  <h3>📋 Détails du Championnat n° {{ championnatDetail.idChamp }} </h3>
+  <h3>📋 Détails du Championnat n° {{ championnatDetail.idChamp }}</h3>
   <p>🏆 Division : {{ championnatDetail.division }}</p>
   <p>📊 Statut : {{ championnatDetail.statut }}</p>
   <p>🎯 Points Actuels : {{ championnatDetail.pointActuels }}</p>
@@ -34,17 +34,18 @@
   <!-- 📌 Liste des rencontres du championnat -->
   <h3>⚔️ Rencontres</h3>
   <ul>
-    <li *ngFor="let rencontre of championnatDetail.rencontres" (click)="selectRencontre(rencontre.rid)">
-      <strong>{{ rencontre.nomEquipe }} vs {{ rencontre.nomAdversaire }}</strong>  
-      <span> ({{ rencontre.butEquipe }} - {{ rencontre.butAdversaire }})</span>  
-      <br>
+    <li
+      *ngFor="let rencontre of championnatDetail.rencontres"
+      (click)="selectRencontre(rencontre.rid)"
+    >
+      <strong>{{ rencontre.nomEquipe }} vs {{ rencontre.nomAdversaire }}</strong>
+      <span> ({{ rencontre.butEquipe }} - {{ rencontre.butAdversaire }})</span>
+      <br />
       🏅 Homme du match : {{ rencontre.hommeDuMatch }}
-      <br>
+      <br />
       <button (click)="selectRencontre(rencontre.rid)">📊 Voir les statistiques</button>
     </li>
   </ul>
 
   <button (click)="creerNouvelleRencontre()">➕ Nouvelle Rencontre</button>
-
-
 </div>

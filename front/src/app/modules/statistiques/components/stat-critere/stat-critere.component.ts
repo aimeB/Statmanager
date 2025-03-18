@@ -8,7 +8,7 @@ import { StatCritereDTO } from '../../../joueur/models/joueur.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './stat-critere.component.html',
-  styleUrls: ['./stat-critere.component.scss']
+  styleUrls: ['./stat-critere.component.scss'],
 })
 export class StatCritereComponent implements OnInit {
   stats!: StatCritereDTO;
@@ -22,7 +22,7 @@ export class StatCritereComponent implements OnInit {
   chargerStats(critere: string): void {
     this.statistiqueService.getJoueursParCritere(critere).subscribe({
       next: (data) => (this.stats = data),
-      error: (err) => console.error('❌ Erreur lors du chargement des statistiques', err)
+      error: (err) => console.error('❌ Erreur lors du chargement des statistiques', err),
     });
   }
 }

@@ -1,10 +1,7 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-      "types": ["node"]
-    },
-    "files": [
-      "src/polyfills.ts"
-    ]
-  }
-  
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "files": ["src/polyfills.ts"]
+}

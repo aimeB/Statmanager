@@ -1,28 +1,27 @@
 <div *ngIf="statsJoueurs.length > 0" class="rencontre-detail-container">
-    <h3>📊 Statistiques des Joueurs</h3>
-    <table class="stats-table">
-      <thead>
-        <tr>
-          <th>Joueur</th>
-          <th>Poste</th>
-          <th>Buts</th>
-          <th>Passes</th>
-          <th>Minutes</th>
-          <th>Cote</th>
-          <th>Points</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let stats of statsJoueurs">
-          <td>{{ stats.nom }}</td>
-          <td>{{ stats.poste }}</td>
-          <td>{{ stats.buts }}</td>
-          <td>{{ stats.passes }}</td>
-          <td>{{ stats.minutesJouees }}</td>
-          <td>{{ stats.cote }}</td>
-          <td>{{ stats.points }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  
+  <h3>📊 Statistiques des Joueurs</h3>
+  <table class="stats-table">
+    <thead>
+      <tr>
+        <th>Joueur</th>
+        <th>Poste</th>
+        <th>Buts</th>
+        <th>Passes</th>
+        <th>Minutes</th>
+        <th>Cote</th>
+        <th>Points</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let stats of statsJoueurs">
+        <td>{{ stats.nom }}</td>
+        <td>{{ stats.poste }}</td>
+        <td>{{ stats.buts }}</td>
+        <td>{{ stats.passes }}</td>
+        <td>{{ stats.minutesJouees }}</td>
+        <td>{{ stats.cote }}</td>
+        <td>{{ stats.points }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

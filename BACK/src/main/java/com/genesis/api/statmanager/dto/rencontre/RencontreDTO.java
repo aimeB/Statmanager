@@ -25,7 +25,8 @@ public class RencontreDTO {
     private String nomAdversaire; // ✅ Nom de l'adversaire
     private Division divisionAdversaire; // ✅ Division de l'adversaire
 
-    private String hommeDuMatch; // ✅ Joueur élu homme du match
+    private Long hommeDuMatchId; // ✅ ID du joueur élu homme du match
+    private String hommeDuMatchNom; // ✅ Nom du joueur élu
     private StatutRencontre statutRencontre; // ✅ Statut de la rencontre (EN ATTENTE, TERMINEE, etc.)
 
     private List<FeuilleDeMatchDTO> feuillesDeMatch; // ✅ Feuilles de match associées à la rencontre
@@ -34,23 +35,27 @@ public class RencontreDTO {
      * ✅ Constructeur simplifié pour récupérer une rencontre sans charger toutes les feuilles de match.
      */
     public RencontreDTO(Long rid, Long idChamp, int butEquipe, String nomAdversaire,
-                        int butAdversaire, Division divisionAdversaire, String hommeDuMatch, StatutRencontre statutRencontre) {
+                        int butAdversaire, Division divisionAdversaire, Long hommeDuMatchId, String hommeDuMatchNom,
+                        StatutRencontre statutRencontre) {
         this.rid = rid;
         this.idChamp = idChamp;
-        this.nomEquipe = "Herstal FC"; // ✅ Fixé en dur
+        this.nomEquipe = "Herstal FC";
         this.butEquipe = butEquipe;
         this.nomAdversaire = nomAdversaire;
         this.butAdversaire = butAdversaire;
         this.divisionAdversaire = divisionAdversaire;
-        this.hommeDuMatch = hommeDuMatch;
+        this.hommeDuMatchId = hommeDuMatchId;
+        this.hommeDuMatchNom = hommeDuMatchNom;
         this.statutRencontre = statutRencontre;
     }
+
+
 
     /**
      * ✅ Constructeur utilisé **après la création de la rencontre**, incluant les feuilles de match.
      */
     public RencontreDTO(Long rid, Long idChamp, int butEquipe, String nomAdversaire,
-                        int butAdversaire, Division divisionAdversaire, String hommeDuMatch,
+                        int butAdversaire, Division divisionAdversaire, Long hommeDuMatchId, String hommeDuMatchNom,
                         StatutRencontre statutRencontre, List<FeuilleDeMatchDTO> feuillesDeMatch) {
         this.rid = rid;
         this.idChamp = idChamp;
@@ -59,7 +64,8 @@ public class RencontreDTO {
         this.nomAdversaire = nomAdversaire;
         this.butAdversaire = butAdversaire;
         this.divisionAdversaire = divisionAdversaire;
-        this.hommeDuMatch = hommeDuMatch;
+        this.hommeDuMatchId = hommeDuMatchId;
+        this.hommeDuMatchNom = hommeDuMatchNom;
         this.statutRencontre = statutRencontre;
         this.feuillesDeMatch = feuillesDeMatch; // ✅ Liste complète des feuilles de match après création
     }

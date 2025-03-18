@@ -24,13 +24,13 @@ export const appConfig: ApplicationConfig = {
 
     // ✅ Fourniture explicite des modules Angular Material
     importProvidersFrom(
-      MatMenuModule, 
-      MatButtonModule, 
+      MatMenuModule,
+      MatButtonModule,
       MatIconModule,
       MatCardModule,
       MatChipsModule,
       MatInputModule,
-      MatSelectModule
-    )
-  ]
+      MatSelectModule,
+    ),
+  ],
 };

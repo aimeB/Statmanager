@@ -1,2 +1,1 @@
-export class ClotureRencontreModel {
-}
+export class ClotureRencontreModel {}

@@ -8,7 +8,7 @@ import { StatCompositeDTO } from '../../../joueur/models/joueur.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './stat-composite.component.html',
-  styleUrls: ['./stat-composite.component.scss']
+  styleUrls: ['./stat-composite.component.scss'],
 })
 export class StatCompositeComponent implements OnInit {
   joueursComposite!: StatCompositeDTO;
@@ -22,7 +22,8 @@ export class StatCompositeComponent implements OnInit {
   chargerJoueursParScoreComposite(): void {
     this.statistiqueService.getJoueursParScoreComposite().subscribe({
       next: (data) => (this.joueursComposite = data),
-      error: (err) => console.error('❌ Erreur lors du chargement des joueurs par score composite', err)
+      error: (err) =>
+        console.error('❌ Erreur lors du chargement des joueurs par score composite', err),
     });
   }
 }

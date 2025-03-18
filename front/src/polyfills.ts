@@ -1,6 +1,5 @@
 import 'zone.js'; // ✅ Solution mise à jour
 
-
 (window as any).global = window;
 (window as any).process = { env: {} };
 

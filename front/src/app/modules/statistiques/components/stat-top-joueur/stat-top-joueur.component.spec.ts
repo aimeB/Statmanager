@@ -8,9 +8,8 @@ describe('StatTopJoueurComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [StatTopJoueurComponent]
-    })
-    .compileComponents();
+      imports: [StatTopJoueurComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(StatTopJoueurComponent);
     component = fixture.componentInstance;

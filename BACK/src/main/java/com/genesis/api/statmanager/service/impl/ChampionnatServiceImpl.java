@@ -5,11 +5,13 @@ import com.genesis.api.statmanager.dto.championnat.*;
 import com.genesis.api.statmanager.dto.global.StatistiquesChampionnatDTO;
 import com.genesis.api.statmanager.dto.global.StatistiquesRencontreDTO;
 import com.genesis.api.statmanager.dto.joueur.JoueurDTO;
+import com.genesis.api.statmanager.dto.rencontre.ClotureRencontreDTO;
 import com.genesis.api.statmanager.dto.rencontre.RencontreDTO;
 import com.genesis.api.statmanager.dto.rencontre.RencontreDetailDTO;
 import com.genesis.api.statmanager.model.*;
 import com.genesis.api.statmanager.model.enumeration.*;
 import com.genesis.api.statmanager.projection.FeuilleDeMatchProjection;
+import com.genesis.api.statmanager.projection.JoueurLightProjection;
 import com.genesis.api.statmanager.projection.JoueurProjection;
 import com.genesis.api.statmanager.repository.*;
 import com.genesis.api.statmanager.service.ChampionnatService;
@@ -36,7 +38,6 @@ import java.util.stream.Collectors;
 public class ChampionnatServiceImpl implements ChampionnatService {
 
 
-
     private final JoueurRepository joueurRepository;
     private final RencontreRepository rencontreRepository;
     private final ChampionnatRepository championnatRepository;
@@ -46,7 +47,6 @@ public class ChampionnatServiceImpl implements ChampionnatService {
 
     @PersistenceContext
     private EntityManager entityManager;
-
 
 
     private static final int MAX_RENCONTRES = 10;
@@ -102,24 +102,6 @@ public class ChampionnatServiceImpl implements ChampionnatService {
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     @Override
     @Transactional
     public void cloturerChampionnat(Long idChampionnat) {
@@ -136,45 +118,44 @@ public class ChampionnatServiceImpl implements ChampionnatService {
         // 2️⃣ Récupérer toutes les feuilles de match du championnat
         List<FeuilleDeMatch> feuillesDeMatch = feuilleDeMatchRepository.findByChampionnatId(idChampionnat);
 
-        Map<Long, Poste> postesParJoueur = new HashMap<>();
-        // 1️⃣ Récupérer tous les postes des joueurs en une seule requête
-        List<Joueur> joueurs = joueurRepository.findAllById(
-                feuillesDeMatch.stream().map(FeuilleDeMatch::getJoueurId).collect(Collectors.toSet())
+        // 3️⃣ Récupérer tous les postes des joueurs en une seule requête via la projection
+        List<JoueurProjection> joueursProjection = joueurRepository.findAllJoueurProjectionsByIds(
+                new ArrayList<>(feuillesDeMatch.stream()
+                        .map(FeuilleDeMatch::getJid)
+                        .collect(Collectors.toSet())) // ✅ Convertit Set → List
         );
-        for (Joueur joueur : joueurs) {
-            postesParJoueur.put(joueur.getJid(), joueur.getPoste());
-        }
 
-        // 2️⃣ Transformer les feuilles en `StatistiquesRencontreDTO` avec le bon poste
+
+        // 4️⃣ Mapper les joueurs (ID → Poste) en évitant d'instancier `Joueur`
+        Map<Long, Poste> postesParJoueur = joueursProjection.stream()
+                .collect(Collectors.toMap(JoueurProjection::getJid, jp -> Poste.valueOf(jp.getPoste())));
+
+        // 5️⃣ Transformer les feuilles en `StatistiquesRencontreDTO` avec le bon poste
         List<StatistiquesRencontreDTO> statsRencontres = feuillesDeMatch.stream()
                 .map(feuille -> StatistiquesRencontreDTO.fromFeuilleDeMatchEntity(
-                        feuille, postesParJoueur.getOrDefault(feuille.getJoueurId(), Poste.INCONNU)))
+                        feuille, postesParJoueur.getOrDefault(feuille.getJid(), Poste.INCONNU)))
                 .toList();
 
-// 3️⃣ Regrouper les statistiques par joueur
+        // 6️⃣ Regrouper les statistiques par joueur
         Map<Long, List<StatistiquesRencontreDTO>> statsParJoueur = statsRencontres.stream()
                 .collect(Collectors.groupingBy(StatistiquesRencontreDTO::getJoueurId));
 
-        // 4️⃣ Agréger les statistiques des joueurs sur tout le championnat
+        // 7️⃣ Agréger les statistiques des joueurs sur tout le championnat
         List<StatistiquesChampionnatDTO> statsChampionnat = new ArrayList<>();
         for (Map.Entry<Long, List<StatistiquesRencontreDTO>> entry : statsParJoueur.entrySet()) {
             StatistiquesChampionnatDTO statsChamp = StatistiquesChampionnatDTO.fromChampionnat(entry.getValue(), idChampionnat);
             statsChampionnat.add(statsChamp);
         }
 
-        // 5️⃣ Attribuer les points finaux selon le classement
+        // 8️⃣ Attribuer les points finaux selon le classement
         StatistiquesChampionnatDTO.attribuerPointsFinalChampionnat(statsChampionnat);
 
-        // 6️⃣ Mettre à jour les joueurs en base
+        // 9️⃣ Mise à jour des points en base sans instancier `Joueur`
         for (StatistiquesChampionnatDTO stats : statsChampionnat) {
-            Joueur joueur = joueurRepository.findById(stats.getJoueurId()).orElse(null);
-            if (joueur != null) {
-                joueur.setPoint(joueur.getPoint() + stats.getPointsChamp()); // ✅ Mise à jour du champ `point` en base
-                joueurRepository.save(joueur);
-            }
+            joueurRepository.updatePointsForPlayer(stats.getJoueurId(), stats.getPointsChamp());
         }
 
-        // 7️⃣ Mettre à jour le statut du championnat
+        // 🔟 Mettre à jour le statut du championnat
         championnat.setStatut(Statut.ENCOURS);
         championnatRepository.save(championnat);
 
@@ -183,16 +164,14 @@ public class ChampionnatServiceImpl implements ChampionnatService {
 
 
 
-
-
     /**
      * 📌 Vérifie et met à jour le statut du championnat **avec promotion/relégation**.
      */
     private void verifierStatutChampionnatAvecObjectifs(Championnat championnat) {
-        int nombreRencontresJouees = (int) championnat.getRencontres().stream()
-                .filter(rencontre -> rencontre.getStatutRencontre() == StatutRencontre.TERMINE)
-                .count();
+        // 🔄 Rafraîchir les données du championnat avant de compter les matchs
+        championnat = championnatRepository.findById(championnat.getIdChamp()).orElseThrow();
 
+        int nombreRencontresJouees = (int) rencontreRepository.countRencontresTerminees(championnat.getIdChamp());
         int pointsActuels = championnat.getPointsActuels();
         int pointsRestantsPossibles = (MAX_RENCONTRES - nombreRencontresJouees) * 3; // 3 points max par match restant
 
@@ -236,9 +215,10 @@ public class ChampionnatServiceImpl implements ChampionnatService {
      * 📌 Vérifie et met à jour le statut du championnat **sans promotion/relégation** (obligation de jouer 10 matchs).
      */
     private void verifierStatutChampionnatSansObjectifs(Championnat championnat) {
-        int nombreRencontresJouees = (int) championnat.getRencontres().stream()
-                .filter(rencontre -> rencontre.getStatutRencontre() == StatutRencontre.TERMINE)
-                .count();
+        // 🔄 Rafraîchir les données du championnat avant de compter les matchs
+        championnat = championnatRepository.findById(championnat.getIdChamp()).orElseThrow();
+
+        int nombreRencontresJouees = (int) rencontreRepository.countRencontresTerminees(championnat.getIdChamp());
 
         log.info("🔍 [Statut Championnat Sans Objectifs] ID={} | Matchs joués: {}", championnat.getIdChamp(), nombreRencontresJouees);
 
@@ -257,24 +237,19 @@ public class ChampionnatServiceImpl implements ChampionnatService {
      * 📌 Vérifie et met à jour le statut du championnat **en fonction de son type**.
      */
     public void verifierStatutChampionnat(Championnat championnat) {
+        log.info("📌 Vérification du statut du championnat ID={} | Points Actuels={} | Points Promotion={} | Points Relégation={}",
+                championnat.getIdChamp(), championnat.getPointsActuels(), championnat.getPointsPromotion(), championnat.getPointsRelegation());
+
         if (championnat.getPointsPromotion() == 0 && championnat.getPointsRelegation() == 0) {
-            // ✅ Gestion des divisions sans promotion/relégation
+            log.info("⚠️ Championnat ID={} sans promotion ni relégation. Vérification sans objectifs en cours...", championnat.getIdChamp());
             verifierStatutChampionnatSansObjectifs(championnat);
         } else {
-            // ✅ Gestion des divisions avec promotion/relégation
+            log.info("🔍 Championnat ID={} avec objectifs de promotion/relégation. Vérification avec objectifs en cours...", championnat.getIdChamp());
             verifierStatutChampionnatAvecObjectifs(championnat);
         }
+
+        log.info("✅ Vérification du statut du championnat terminée pour ID={}", championnat.getIdChamp());
     }
-
-
-
-
-
-
-
-
-
-
 
 
     /**
@@ -293,8 +268,6 @@ public class ChampionnatServiceImpl implements ChampionnatService {
     // =========================================================================
 
 
-
-
     /**
      * 📌 Récupère les 10 derniers championnats.
      */
@@ -306,21 +279,21 @@ public class ChampionnatServiceImpl implements ChampionnatService {
     }
 
 
-
     /**
      * 📌 Récupère un championnat avec ses rencontres.
      */
-    @Transactional // ✅ Ajoute cette annotation pour garder la session ouverte
+
+    @Transactional
     @Override
     public ChampionnatDetailWithRencontresDTO findChampionnatWithRencontres(Long idChamp) {
         Championnat championnat = championnatRepository.findById(idChamp)
                 .orElseThrow(() -> new IllegalArgumentException("Championnat non trouvé"));
 
-        // ✅ Utiliser `findRencontresByChampionnat(idChamp)`, qui retourne une liste de `RencontreDTO`
+        // ✅ Correction : Utiliser `mapRencontreDTOToDetailDTO` pour convertir chaque `RencontreDTO` en `RencontreDetailDTO`
         List<RencontreDetailDTO> rencontres = rencontreRepository.findRencontresByChampionnat(idChamp).stream()
-                .map(this::mapRencontreDTOToDetailDTO) // ✅ Nouvelle méthode de conversion
+                .map(rencontre -> mapRencontreDTOToDetailDTO(rencontre)) // ✅ Correction avec `mapRencontreDTOToDetailDTO`
                 .collect(Collectors.toList());
-        log.info("🚀 Nombre de rencontres récupérées : {}", championnat.getRencontres() == null ? "NULL" : championnat.getRencontres().size());
+
 
         return new ChampionnatDetailWithRencontresDTO(
                 championnat.getIdChamp(),
@@ -338,40 +311,16 @@ public class ChampionnatServiceImpl implements ChampionnatService {
 
 
     @Override
-    public ChampionnatOverviewDTO getChampionnatOverview(Long idChamp) {
+    public ChampionnatOverviewDTO getChampionnatOverview(Long idChamp ) {
         List<ChampionnatLightDTO> derniersChampionnats = findTop10ByOrderByIdChampDesc();
         ChampionnatDetailWithRencontresDTO detailChampionnat = idChamp != null ? findChampionnatWithRencontres(idChamp) : null;
         return new ChampionnatOverviewDTO(derniersChampionnats, detailChampionnat);
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // =========================================================================
     // 🔹 SECTION 3 : STATISTIQUES ET CLASSEMENTS
     // =========================================================================
-
-
-
-
-
 
 
     /**
@@ -389,20 +338,9 @@ public class ChampionnatServiceImpl implements ChampionnatService {
     }
 
 
-
-
-
-
-
     // =========================================================================
     // 🔹 SECTION 4 : MAPPERS
     // =========================================================================
-
-
-
-
-
-
 
 
     /**
@@ -422,15 +360,12 @@ public class ChampionnatServiceImpl implements ChampionnatService {
     }
 
 
-
-
-
-
     private ChampionnatDTO mapToDTO(Championnat championnat) {
         return new ChampionnatDTO(championnat.getIdChamp(), championnat.getDivision(), championnat.getStatut(),
                 championnat.getPointsActuels(), championnat.getPointsPromotion(), championnat.getPointsRelegation(),
                 championnat.getRencontres().size());
     }
+
 
 
 
@@ -443,46 +378,64 @@ public class ChampionnatServiceImpl implements ChampionnatService {
         JoueurProjection joueurProjection = joueurRepository.findJoueurProjectionById(stat.getJoueurId())
                 .orElseThrow(() -> new IllegalArgumentException("❌ Joueur introuvable pour ID=" + stat.getJoueurId()));
 
-        // Construction du DTO avec les données extraites
+        // Détection si le joueur est un gardien
+        boolean estGardien = Poste.fromString(joueurProjection.getPoste()).isGardien();
+
+        // Calcul des points en prenant en compte les clean sheets pour les gardiens
+        int points = stat.getButsChamp() * 3 + stat.getPassesChamp();
+        if (estGardien) {
+            points += stat.getCleanSheet() * 2; // ✅ 2 points par clean sheet
+        }
+
+        // 📌 Construction du DTO avec toutes les statistiques nécessaires
         return new StatistiquesChampionnatDTO(
                 stat.getChampionnat().getIdChamp(),  // ID du championnat
                 stat.getJoueurId(),  // ID du joueur
                 joueurProjection.getNom(),  // Nom du joueur via projection
                 joueurProjection.getPoste(),  // Poste du joueur via projection
-                stat.getButsChamp(),  // Buts dans ce championnat
+                stat.getButsChamp(),  // Buts marqués dans ce championnat
                 stat.getPassesChamp(),  // Passes dans ce championnat
                 stat.getMoyenneCoteChamp(),  // Moyenne de la cote dans ce championnat
                 stat.getMinutesJoueesChamp(),  // Total des minutes jouées dans ce championnat
-                stat.getButsChamp() * 3 + stat.getPassesChamp()  // Calcul des points dans le championnat
+                points,  // ✅ Calcul des points avec clean sheets
+                stat.getButArreterChamp(),  // 🥅 Nombre d'arrêts pour les gardiens
+                stat.getButEncaisserChamp(),  // 🚨 Nombre de buts encaissés
+                stat.getCleanSheet()  // 🏆 Nombre de clean sheets
         );
     }
 
 
 
-    private RencontreDetailDTO mapRencontreDTOToDetailDTO(RencontreDTO dto) {
-        // Récupération des projections au lieu des entités
-        List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(dto.getRid());
 
-        // Convertir les projections en `FeuilleDeMatchDTO`
-        List<FeuilleDeMatchDTO> feuilles = projections.stream()
-                .map(FeuilleDeMatchDTO::fromProjection) // ✅ Méthode statique à créer dans `FeuilleDeMatchDTO`
+
+
+
+    private RencontreDetailDTO mapRencontreDTOToDetailDTO(RencontreDTO dto) {
+        // 🔍 Récupération des projections de feuilles de match
+        List<FeuilleDeMatchProjection> projections = feuilleDeMatchRepository.findFeuillesDeMatchAsProjection(dto.getRid())
+                .stream()
+                .filter(fm -> fm.isTitulaire() || fm.isAjoue()) // ✅ Garder uniquement ceux qui ont joué
                 .toList();
 
-        // Création d'une map des postes des joueurs
-        Map<Long, Poste> postesParJoueur = new HashMap<>();
-        List<Joueur> joueurs = joueurRepository.findAllById(
+        // 🔹 Convertir les projections en `FeuilleDeMatchDTO`
+        List<FeuilleDeMatchDTO> feuilles = projections.stream()
+                .map(FeuilleDeMatchDTO::fromProjection)
+                .toList();
+
+        // 🔹 Récupérer les joueurs et leur poste via `joueurRepository`
+        Map<Long, Poste> postesParJoueur = joueurRepository.findPostesByJoueurIds(
                 feuilles.stream().map(FeuilleDeMatchDTO::getJid).collect(Collectors.toSet())
-        );
-        for (Joueur joueur : joueurs) {
-            postesParJoueur.put(joueur.getJid(), joueur.getPoste());
-        }
+        ).stream().collect(Collectors.toMap(
+                JoueurLightProjection::getJid,
+                projection -> Poste.valueOf(projection.getPoste()) // ✅ Conversion `String -> Poste`
+        ));
 
-        // Conversion en `StatistiquesRencontreDTO`
 
+
+        // 🔹 Correction : Passer `clotureDTO` explicitement
         List<StatistiquesRencontreDTO> statsJoueurs = feuilles.stream()
-                .map(StatistiquesRencontreDTO::fromFeuilleDeMatch)
+                .map(feuille -> StatistiquesRencontreDTO.fromFeuilleDeMatch(feuille)) // ✅ Correction avec lambda
                 .collect(Collectors.toList());
-
 
         return new RencontreDetailDTO(
                 dto.getRid(),
@@ -491,13 +444,13 @@ public class ChampionnatServiceImpl implements ChampionnatService {
                 dto.getButEquipe(),
                 dto.getNomAdversaire(),
                 dto.getButAdversaire(),
-                Division.fromString(String.valueOf(dto.getDivisionAdversaire())).getDescription(),
-                dto.getHommeDuMatch(),
+                Optional.ofNullable(dto.getDivisionAdversaire()).map(Division::getDescription).orElse("INCONNU"),
+                dto.getHommeDuMatchId(),
+                dto.getHommeDuMatchNom(),
                 dto.getStatutRencontre(),
                 statsJoueurs
         );
     }
-
 
 
 

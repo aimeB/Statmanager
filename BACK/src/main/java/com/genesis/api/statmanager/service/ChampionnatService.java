@@ -2,6 +2,7 @@ package com.genesis.api.statmanager.service;
 
 import com.genesis.api.statmanager.dto.championnat.*;
 import com.genesis.api.statmanager.dto.global.StatistiquesChampionnatDTO;
+import com.genesis.api.statmanager.dto.rencontre.ClotureRencontreDTO;
 import com.genesis.api.statmanager.model.Championnat;
 import com.genesis.api.statmanager.model.enumeration.Division;
 import java.util.List;

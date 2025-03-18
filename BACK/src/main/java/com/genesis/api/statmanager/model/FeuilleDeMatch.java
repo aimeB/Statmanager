@@ -18,12 +18,13 @@ import java.util.Objects;
 
 import static com.genesis.api.statmanager.model.enumeration.TimePlay.MINUTES90;
 
-@Entity
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Slf4j
+@Entity
 @Table(name = "feuille_de_match")
 public class FeuilleDeMatch {
 
@@ -32,62 +33,60 @@ public class FeuilleDeMatch {
     @Column(name = "feuille_id", nullable = false, unique = true)
     private Long feuilleId;
 
-    // Relation avec Rencontre
+    // Relation avec Rencontre (BIGINT)
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "rencontre_id", referencedColumnName = "rid", nullable = false)
     @JsonBackReference
     @NotNull(message = "La rencontre associée est obligatoire.")
     private Rencontre rencontre;
-
-    // ✅ Relation avec Joueur
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    // Relation avec Joueur (BIGINT)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "joueur_id", insertable = false, updatable = false)  // ✅ Empêche Hibernate de gérer deux fois la colonne `joueur_id`
-    @JsonIgnore // 🚨 IMPORTANT : Pour éviter que Jackson essaie de sérialiser `Joueur`
-    @NotNull(message = "Le joueur associé est obligatoire.")
+    @JsonIgnore
     private Joueur joueur;
 
-    // ✅ ID du joueur sans instancier `Joueur`
+    // ID du joueur (BIGINT)
     @Column(name = "joueur_id", nullable = false)
-    private Long joueurId;
+    @NotNull(message = "L id du joueur est obligatoire.")
+    private Long jid;
 
-    // ✅ Méthode pour charger `Joueur` uniquement si nécessaire
-    public Joueur getJoueur(EntityManager entityManager) {
-        if (joueur == null) {
-            return entityManager.find(Joueur.class, this.joueurId); // Chargement manuel
-        }
-        return joueur;
-    }
-
-    // Statistiques spécifiques à cette rencontre
+    // Statistiques générales
     @Column(name = "buts", nullable = false)
     @Min(value = 0, message = "Le nombre de buts doit être positif.")
-    private Integer buts=0;
+    private Integer buts = 0;
 
     @Column(name = "passes", nullable = false)
     @Min(value = 0, message = "Le nombre de passes doit être positif.")
-    private Integer passes=0;
+    private Integer passes = 0;
 
-    @Column(name = "moyenne_cote", nullable = false)
+    @Column(name = "cote", nullable = false)
     @Min(value = 0, message = "La moyenne de la cote doit être positive.")
-    private Double moyenneCote=0.0;
+    private Double cote = 0.0;
 
     @Column(name = "minutes_jouees", nullable = false)
     @Min(value = 0, message = "Les minutes jouées doivent être positives.")
-    private Double minutesJouees=0.0;
+    private Double minutesJouees = 0.0;
 
-
-
+    // Statistiques de gardien (BIT)
+    @Column(name = "but_arreter", nullable = false)
     private int butArreter;
+
+    @Column(name = "but_encaisser", nullable = false)
     private int butEncaisser;
 
 
+
+
+    // Statut du joueur (a joué et titulaire) (BIT)
     @Column(name = "a_joue", nullable = false)
-    private Boolean aJoue = false; // ✅ Définit `false` par défaut au lieu de `null`
-    // ✅ Nouveau champ : `true` = remplacant rentré, `false` = remplaçant non rentré
+    private boolean ajoue; // Déclare comme `false` par défaut
+
+    @Column(name = "titulaire", nullable = false)
+    private boolean titulaire; // Nouveau champ : `true` = titulaire, `false` = remplaçant
 
 
-    @Column(nullable = false)
-    private boolean titulaire; // ✅ Nouveau champ : `true` = titulaire, `false` = remplaçant
+
+
 
 
 
@@ -104,7 +103,7 @@ public class FeuilleDeMatch {
     // ✅ Méthode pour charger `Joueur` uniquement quand nécessaire
     public Joueur getJoueurSafe(EntityManager entityManager) {
         if (joueur == null) {
-            return entityManager.find(Joueur.class, this.joueurId);
+            return entityManager.find(Joueur.class, this.jid);
         }
         return joueur;
     }
@@ -154,9 +153,6 @@ public class FeuilleDeMatch {
     // ✅ Ajout pour forcer le chargement correct de `Joueur`
     @PostLoad
     private void ensureCorrectJoueurSubclass() {
-        if (this.joueur != null && this.joueur.getClass().equals(Joueur.class)) {
-            throw new IllegalStateException("❌ ERREUR GRAVE : Hibernate a instancié un Joueur abstrait au lieu de sa sous-classe !");
-        }
     }
 
 

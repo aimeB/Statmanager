@@ -53,9 +53,8 @@ public class Rencontre {
     private int butAdversaire=0;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Division divisionAdversaire; // Division de l'adversaire (DIV1, DIV2, etc.)
-
+    @Column(name = "division_adversaire", nullable = false)
+    private Division divisionAdversaire;
 
 
 
@@ -72,7 +71,7 @@ public class Rencontre {
     @Column(name = "statut_rencontre", nullable = false)
     private StatutRencontre statutRencontre = StatutRencontre.EN_ATTENTE;
 
-    @OneToMany(mappedBy = "rencontre", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "rencontre", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JsonIgnore // ✅ Hibernate ne chargera pas cette relation par défaut
     @BatchSize(size = 10)  // ✅ Évite `MultipleBagFetchException`
     private List<FeuilleDeMatch> feuilleDeMatchs = new ArrayList<>();

@@ -1,11 +1,12 @@
 package com.genesis.api.statmanager.dto.global;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Slf4j
 @Data
 @NoArgsConstructor
 public class StatistiquesDTO {
@@ -18,6 +19,11 @@ public class StatistiquesDTO {
     protected double cote = 5.0;
     protected int points = 0;
     protected double totalMinutesJouees = 0.0;
+
+    // 📌 Ajout des stats spécifiques aux gardiens
+    protected int butArreter = 0;
+    protected int butEncaisser = 0;
+    protected int cleanSheet = 0; // ✅ Nombre total de clean sheets
 
     public double getButsParMinute() {
         return (totalMinutesJouees > 0) ? (double) buts / totalMinutesJouees : 0;
@@ -35,11 +41,16 @@ public class StatistiquesDTO {
         return (getButsParMinute() + getPassesParMinute()) / 2;
     }
 
-    // Méthode de calcul des statistiques globales d'un joueur
+    /**
+     * 📌 Génère les statistiques globales d'un joueur à partir de ses rencontres
+     */
     public static StatistiquesDTO fromRencontres(List<StatistiquesRencontreDTO> statsRencontres) {
         if (statsRencontres == null || statsRencontres.isEmpty()) {
+            log.warn("⚠️ Aucune rencontre trouvée pour générer les statistiques globales !");
             return new StatistiquesDTO();
         }
+
+        log.info("📌 Début du calcul des statistiques globales du joueur - Nombre de matchs : {}", statsRencontres.size());
 
         StatistiquesDTO totalStats = new StatistiquesDTO();
         totalStats.joueurId = statsRencontres.get(0).getJoueurId();
@@ -50,44 +61,47 @@ public class StatistiquesDTO {
         int totalButs = 0;
         int totalPasses = 0;
         double totalMinutes = 0;
-        double totalCote = 0;
-        int totalPoints = 0;
-        int matchCount = statsRencontres.size();
+        double totalCotePonderee = 0;
+        int totalButsArretes = 0;
+        int totalButsEncaisses = 0;
+        int totalCleanSheets = 0;
 
         for (StatistiquesRencontreDTO stats : statsRencontres) {
+            log.info("📊 Match traité - Joueur={} | Buts={} | Passes={} | Minutes={} | Cote={} | Buts Arrêtés={} | Buts Encaissés={}",
+                    stats.getJoueurId(), stats.getButs(), stats.getPasses(), stats.getMinutesJouees(),
+                    stats.getCote(), stats.getButArreter(), stats.getButEncaisser());
+
             totalButs += stats.getButs();
             totalPasses += stats.getPasses();
             totalMinutes += stats.getMinutesJouees();
-            totalCote += stats.getCote();
-            totalPoints += stats.getPoints(); // ✅ Prendre les points calculés dans `StatistiquesRencontreDTO`
+            totalButsArretes += stats.getButArreter();
+            totalButsEncaisses += stats.getButEncaisser();
+
+            // ✅ Calcul de la cote pondérée (déplacé ici)
+            totalCotePonderee += stats.getCote() * stats.getMinutesJouees();
+
+            if ("GB".equalsIgnoreCase(stats.getPoste()) && stats.getButEncaisser() == 0) {
+                totalCleanSheets++;
+            }
         }
 
+        // ✅ Attribution des valeurs calculées
         totalStats.buts = totalButs;
         totalStats.passes = totalPasses;
         totalStats.totalMinutesJouees = totalMinutes;
-        totalStats.points = totalPoints; // ✅ Corrigé, on ne fait plus `totalButs * 3 + totalPasses`
+        totalStats.butArreter = totalButsArretes;
+        totalStats.butEncaisser = totalButsEncaisses;
+        totalStats.cleanSheet = totalCleanSheets;
 
-        // Calcul de la moyenne de la cote
-        totalStats.cote = ( totalStats.totalMinutesJouees > 0) ? totalCote /  totalStats.totalMinutesJouees : 5.0;
+        // ✅ Calcul correct de la moyenne pondérée
+        totalStats.cote = (totalMinutes > 0) ? totalCotePonderee / totalMinutes : 5.0;
 
+        log.info("✅ Statistiques finales calculées - Joueur ID={} | Total Buts={} | Total Passes={} | Total Minutes={} | Moyenne Cote={} | Buts Arrêtés={} | Buts Encaissés={} | Clean Sheets={}",
+                totalStats.joueurId, totalStats.buts, totalStats.passes, totalStats.totalMinutesJouees,
+                totalStats.cote, totalStats.butArreter, totalStats.butEncaisser, totalStats.cleanSheet);
 
         return totalStats;
     }
 
-
-
-
-    public StatistiquesDTO(Long joueurId, String nom, String typeJoueur, String poste,
-                           int buts, int passes, double cote, int points, double totalMinutesJouees) {
-        this.joueurId = joueurId;
-        this.nom = nom;
-        this.typeJoueur = typeJoueur;
-        this.poste = poste;
-        this.buts = buts;
-        this.passes = passes;
-        this.cote = cote;
-        this.points = points;
-        this.totalMinutesJouees = totalMinutesJouees;
-    }
 
 }

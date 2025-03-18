@@ -15,8 +15,8 @@ export interface JoueurDTO {
 }
 
 /**
-* 📌 DTO léger pour afficher une liste simplifiée de joueurs.
-*/
+ * 📌 DTO léger pour afficher une liste simplifiée de joueurs.
+ */
 export interface JoueurLightDTO {
   id: number;
   nom: string;
@@ -24,8 +24,8 @@ export interface JoueurLightDTO {
 }
 
 /**
-* 📌 DTO contenant les statistiques globales d'un joueur.
-*/
+ * 📌 DTO contenant les statistiques globales d'un joueur.
+ */
 export interface JoueurStatGlobalDTO {
   joueurId: number;
   nom: string;
@@ -44,8 +44,8 @@ export interface JoueurStatGlobalDTO {
 }
 
 /**
-* 📌 DTO représentant la performance d'un joueur par division.
-*/
+ * 📌 DTO représentant la performance d'un joueur par division.
+ */
 export interface PerformanceParDivision {
   division: string;
   buts: number;
@@ -55,17 +55,13 @@ export interface PerformanceParDivision {
   points: number;
 }
 
-
 export interface StatCritereDTO {
   joueurs: JoueurStatGlobalDTO[];
 }
 
-
 export interface StatTopJoueurDTO {
   meilleursJoueurs: JoueurStatGlobalDTO[];
 }
-
-
 
 export interface StatCompositeDTO {
   joueurs: JoueurStatGlobalDTO[];

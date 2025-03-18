@@ -1,39 +1,42 @@
 <div class="fin-match-container" *ngIf="finMatchData">
-    <h2>🏆 Fin du Match</h2>
-    <div class="score">
-      <h3>{{ finMatchData.equipeDomicile }} {{ finMatchData.scoreEquipe }} - {{ finMatchData.scoreAdversaire }} {{ finMatchData.equipeAdverse }}</h3>
-    </div>
-    <p><strong>Homme du Match :</strong> {{ finMatchData.hommeDuMatch }}</p>
-  
-    <h3>📊 Statistiques des Joueurs</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Joueur</th>
-          <th>Poste</th>
-          <th>Buts</th>
-          <th>Passes</th>
-          <th>Minutes</th>
-          <th>Cote</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let joueur of finMatchData.statistiquesJoueurs">
-          <td>{{ joueur.nomJoueur }}</td>
-          <td>{{ joueur.poste }}</td>
-          <td>{{ joueur.buts }}</td>
-          <td>{{ joueur.passes }}</td>
-          <td>{{ joueur.minutesJouees }}</td>
-          <td>{{ joueur.moyenneCote }}</td>
-        </tr>
-      </tbody>
-    </table>
-  
-    <h3>⚽ Événements du Match</h3>
-    <ul>
-      <li *ngFor="let event of finMatchData.evenementsMatch">
-        {{ event.minute }}' - {{ event.nomJoueur }} ({{ event.typeEvenement }})
-        <span *ngIf="event.idPasseur">Passeur : {{ event.nomPasseur }}</span>
-      </li>
-    </ul>
+  <h2>🏆 Fin du Match</h2>
+  <div class="score">
+    <h3>
+      {{ finMatchData.equipeDomicile }} {{ finMatchData.scoreEquipe }} -
+      {{ finMatchData.scoreAdversaire }} {{ finMatchData.equipeAdverse }}
+    </h3>
   </div>
+  <p><strong>Homme du Match :</strong> {{ finMatchData.hommeDuMatch }}</p>
+
+  <h3>📊 Statistiques des Joueurs</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Joueur</th>
+        <th>Poste</th>
+        <th>Buts</th>
+        <th>Passes</th>
+        <th>Minutes</th>
+        <th>Cote</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let joueur of finMatchData.statistiquesJoueurs">
+        <td>{{ joueur.nomJoueur }}</td>
+        <td>{{ joueur.poste }}</td>
+        <td>{{ joueur.buts }}</td>
+        <td>{{ joueur.passes }}</td>
+        <td>{{ joueur.minutesJouees }}</td>
+        <td>{{ joueur.moyenneCote }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>⚽ Événements du Match</h3>
+  <ul>
+    <li *ngFor="let event of finMatchData.evenementsMatch">
+      {{ event.minute }}' - {{ event.nomJoueur }} ({{ event.typeEvenement }})
+      <span *ngIf="event.idPasseur">Passeur : {{ event.nomPasseur }}</span>
+    </li>
+  </ul>
+</div>
